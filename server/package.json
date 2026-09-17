@@ -1,0 +1,39 @@
+{
+  "name": "meditrack-server",
+  "version": "1.0.0",
+  "description": "MediTrack Phase 0 backend scaffold",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "check:setup": "node scripts/check-setup.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "engines": { "node": ">=22.12.0" },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    }
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "bcrypt": "6.0.0",
+    "cors": "2.8.6",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "ioredis": "6.0.0",
+    "jsonwebtoken": "9.0.3",
+    "node-cron": "4.6.0",
+    "socket.io": "4.8.3"
+  },
+  "devDependencies": {
+    "prisma": "6.19.3"
+  }
+}

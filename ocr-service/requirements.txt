@@ -1,0 +1,18 @@
+# Python 3.11. OCR execution and model loading are implemented in Phase 4.
+fastapi==0.135.1
+uvicorn==0.41.0
+python-dotenv==1.2.2
+# Roadmap setup dependencies only; PaddleOCR is the selected engine.
+opencv-python==4.10.0.84
+opencv-contrib-python==4.10.0.84
+opencv-python-headless==4.10.0.84
+numpy==2.3.5
+Pillow==12.3.0
+pytesseract==0.3.13
+paddleocr==3.7.0
+paddlepaddle==3.3.1
+easyocr==1.7.2
+torch==2.14.0
+torchvision==0.29.0
+scipy==1.17.1
+google-generativeai==0.8.6

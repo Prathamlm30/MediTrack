@@ -1,0 +1,543 @@
+// ==========================================================
+// MediTrack — Prisma Schema (PostgreSQL)
+// Generated to match the original relational schema exactly.
+// Run: npx prisma migrate dev --name init
+// ==========================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------------- ENUMS ----------------
+
+enum AuthProvider {
+  local
+  google
+}
+
+enum PermissionLevel {
+  view_only
+  full_access
+  alerts_only
+}
+
+enum LinkStatus {
+  pending
+  active
+  revoked
+  expired
+}
+
+enum ProposedRole {
+  patient
+  caregiver
+}
+
+enum InvitationStatus {
+  sent
+  accepted
+  declined
+  expired
+}
+
+enum DoctorSource {
+  ocr_scan
+  manual
+}
+
+enum MedicineForm {
+  tablet
+  capsule
+  syrup
+  liquid
+  injection
+  ointment
+  cream
+  drops
+  inhaler
+  patch
+  powder
+  spray
+  other
+}
+
+enum TrackingType {
+  countable
+  volume_ml
+  weight_grams
+}
+
+enum MedicationStatus {
+  active
+  completed
+  discontinued
+}
+
+enum AddedVia {
+  manual
+  ocr_scan
+}
+
+enum ScanStatus {
+  processing
+  completed
+  failed
+  needs_review
+}
+
+enum DoseStatus {
+  pending
+  taken
+  skipped
+  snoozed
+  missed
+}
+
+enum NotificationType {
+  reminder
+  refill
+  escalation
+  weekly_summary
+  system
+}
+
+enum NotificationChannel {
+  email
+  push
+  sms
+  in_app
+}
+
+enum NotificationStatus {
+  sent
+  delivered
+  failed
+  read
+}
+
+enum EscalationResolutionStatus {
+  open
+  resolved
+  ignored
+}
+
+enum PeriodType {
+  daily
+  weekly
+  monthly
+}
+
+enum ReportSentStatus {
+  pending
+  sent
+  failed
+}
+
+enum SenderType {
+  user
+  ai
+}
+
+enum InsightType {
+  adherence_pattern
+  schedule_suggestion
+}
+
+enum SeverityLevel {
+  mild
+  moderate
+  severe
+}
+
+enum Theme {
+  light
+  dark
+}
+
+// ---------------- MODELS ----------------
+
+model User {
+  id                Int       @id @default(autoincrement())
+  fullName          String
+  email             String    @unique
+  phoneNumber       String?
+  passwordHash      String?      // null for google-only accounts
+  authProvider      AuthProvider @default(local)
+  googleId          String?      @unique
+  dateOfBirth       DateTime?
+  gender            String?
+  profilePictureUrl String?
+  address           String?
+  timezone          String?
+  emailVerified     Boolean   @default(false)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+
+  patientLinks              CaregiverPatientLink[]      @relation("PatientLinks")
+  caregiverLinks            CaregiverPatientLink[]      @relation("CaregiverLinks")
+  invitedLinks              CaregiverPatientLink[]      @relation("InvitedByLinks")
+  sentInvitations           Invitation[]                @relation("InviterInvitations")
+  doctors                   Doctor[]
+  medications               Medication[]
+  prescriptionScans         PrescriptionScan[]
+  doseLogsLogged            DoseLog[]                   @relation("LoggedByUser")
+  doseLogsPatient           DoseLog[]                   @relation("PatientDoseLogs")
+  medicineInventory         MedicineInventory[]
+  notifications             Notification[]
+  escalationAlertsPatient   EscalationAlert[]           @relation("PatientEscalations")
+  escalationAlertsCaregiver EscalationAlert[]           @relation("CaregiverEscalations")
+  adherenceStats            AdherenceStat[]
+  weeklyReportsCaregiver    WeeklySummaryReport[]       @relation("CaregiverReports")
+  weeklyReportsPatient      WeeklySummaryReport[]       @relation("PatientReports")
+  aiChatConversations       AiChatConversation[]
+  aiInsights                AiInsight[]
+  interactionFlags          MedicationInteractionFlag[]
+  preferences               UserPreference?
+  auditLogs                 AuditLog[]
+
+  @@map("users")
+}
+
+model CaregiverPatientLink {
+  id               Int             @id @default(autoincrement())
+  patientId        Int
+  caregiverId      Int
+  relationshipType String
+  permissionLevel  PermissionLevel
+  status           LinkStatus      @default(pending)
+  invitedByUserId  Int?
+  linkedAt         DateTime?
+  revokedAt        DateTime?
+  createdAt        DateTime        @default(now())
+
+  patient   User  @relation("PatientLinks", fields: [patientId], references: [id])
+  caregiver User  @relation("CaregiverLinks", fields: [caregiverId], references: [id])
+  invitedBy User? @relation("InvitedByLinks", fields: [invitedByUserId], references: [id])
+
+  @@map("caregiver_patient_links")
+}
+
+model Invitation {
+  id               Int               @id @default(autoincrement())
+  inviterUserId    Int
+  inviteeEmail     String
+  relationshipType String
+  proposedRole     ProposedRole
+  inviteToken      String            @unique
+  status           InvitationStatus  @default(sent)
+  expiresAt        DateTime
+  createdAt        DateTime          @default(now())
+  respondedAt      DateTime?
+
+  inviter User @relation("InviterInvitations", fields: [inviterUserId], references: [id])
+
+  @@map("invitations")
+}
+
+model Doctor {
+  id                 Int          @id @default(autoincrement())
+  patientId          Int
+  doctorName         String
+  specialization     String?
+  clinicHospitalName String?
+  contactNumber      String?
+  address            String?
+  source             DoctorSource
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  patient           User               @relation(fields: [patientId], references: [id])
+  medications       Medication[]
+  prescriptionScans PrescriptionScan[]
+
+  @@map("doctors")
+}
+
+model Medication {
+  id            Int               @id @default(autoincrement())
+  patientId     Int
+  doctorId      Int?
+  medicineName  String
+  genericName   String?
+  medicineForm  MedicineForm
+  trackingType  TrackingType
+  dosageAmount  Decimal           @db.Decimal(6, 2)
+  dosageUnit    String
+  frequencyText String
+  instructions  String?
+  startDate     DateTime
+  endDate       DateTime?
+  status        MedicationStatus  @default(active)
+  addedVia      AddedVia
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  patient                  User                        @relation(fields: [patientId], references: [id])
+  doctor                   Doctor?                     @relation(fields: [doctorId], references: [id])
+  schedules                MedicationSchedule[]
+  inventory                MedicineInventory[]
+  prescriptionScans        PrescriptionScan[]
+  aiChatConversations      AiChatConversation[]
+  aiInsights               AiInsight[]
+  interactionFlagsAsFirst  MedicationInteractionFlag[] @relation("MedicationOne")
+  interactionFlagsAsSecond MedicationInteractionFlag[] @relation("MedicationTwo")
+
+  @@map("medications")
+}
+
+model PrescriptionScan {
+  id                 Int         @id @default(autoincrement())
+  patientId          Int
+  medicationId       Int?
+  doctorId           Int?
+  imageUrl           String
+  ocrRawText         String?
+  ocrExtractedData   Json?
+  ocrConfidenceScore Decimal?    @db.Decimal(5, 2)
+  scanStatus         ScanStatus  @default(processing)
+  uploadedAt         DateTime    @default(now())
+  reviewedAt         DateTime?
+
+  patient    User        @relation(fields: [patientId], references: [id])
+  medication Medication? @relation(fields: [medicationId], references: [id])
+  doctor     Doctor?     @relation(fields: [doctorId], references: [id])
+
+  @@map("prescription_scans")
+}
+
+model MedicationSchedule {
+  id              Int      @id @default(autoincrement())
+  medicationId    Int
+  timeOfDay       DateTime @db.Time()
+  daysOfWeek      String
+  doseAmount      Decimal  @db.Decimal(6, 2)
+  isTaperSchedule Boolean  @default(false)
+  taperDetails    Json?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  medication Medication @relation(fields: [medicationId], references: [id])
+  doseLogs   DoseLog[]
+
+  @@map("medication_schedules")
+}
+
+model DoseLog {
+  id                   Int        @id @default(autoincrement())
+  scheduleId           Int
+  patientId            Int
+  scheduledDatetime    DateTime
+  actualActionDatetime DateTime?
+  status               DoseStatus @default(pending)
+  loggedByUserId       Int?
+  notes                String?
+  createdAt            DateTime   @default(now())
+
+  schedule         MedicationSchedule @relation(fields: [scheduleId], references: [id])
+  patient          User               @relation("PatientDoseLogs", fields: [patientId], references: [id])
+  loggedBy         User?              @relation("LoggedByUser", fields: [loggedByUserId], references: [id])
+  notifications    Notification[]
+  escalationAlerts EscalationAlert[]
+
+  @@map("dose_logs")
+}
+
+model MedicineInventory {
+  id                    Int       @id @default(autoincrement())
+  medicationId          Int
+  patientId             Int
+  quantityUnit          String
+  quantityTotal         Decimal   @db.Decimal(8, 2)
+  quantityRemaining     Decimal   @db.Decimal(8, 2)
+  estimatedUsagePerDose Decimal?  @db.Decimal(6, 2)
+  refillThreshold       Decimal   @db.Decimal(8, 2)
+  refillAmount          Decimal   @db.Decimal(8, 2)
+  estimatedRunoutDate   DateTime?
+  lastRefillDate        DateTime?
+  updatedAt             DateTime  @updatedAt
+
+  medication Medication @relation(fields: [medicationId], references: [id])
+  patient    User       @relation(fields: [patientId], references: [id])
+
+  @@map("medicine_inventory")
+}
+
+model Notification {
+  id               Int                 @id @default(autoincrement())
+  userId           Int
+  relatedDoseLogId Int?
+  notificationType NotificationType
+  channel          NotificationChannel
+  title            String
+  message          String
+  status           NotificationStatus  @default(sent)
+  sentAt           DateTime            @default(now())
+  readAt           DateTime?
+
+  user    User     @relation(fields: [userId], references: [id])
+  doseLog DoseLog? @relation(fields: [relatedDoseLogId], references: [id])
+
+  @@map("notifications")
+}
+
+model EscalationAlert {
+  id               Int                         @id @default(autoincrement())
+  doseLogId        Int
+  patientId        Int
+  caregiverId      Int?
+  escalationLevel  Int
+  triggeredAt      DateTime                    @default(now())
+  resolvedAt       DateTime?
+  resolutionStatus EscalationResolutionStatus  @default(open)
+
+  doseLog   DoseLog @relation(fields: [doseLogId], references: [id])
+  patient   User    @relation("PatientEscalations", fields: [patientId], references: [id])
+  caregiver User?   @relation("CaregiverEscalations", fields: [caregiverId], references: [id])
+
+  @@map("escalation_alerts")
+}
+
+model AdherenceStat {
+  id                  Int        @id @default(autoincrement())
+  patientId           Int
+  periodType          PeriodType
+  periodStartDate     DateTime
+  periodEndDate       DateTime
+  totalScheduledDoses Int
+  takenCount          Int
+  missedCount         Int
+  skippedCount        Int
+  adherencePercentage Decimal    @db.Decimal(5, 2)
+  generatedAt         DateTime   @default(now())
+
+  patient User @relation(fields: [patientId], references: [id])
+
+  @@map("adherence_stats")
+}
+
+model WeeklySummaryReport {
+  id            Int              @id @default(autoincrement())
+  caregiverId   Int
+  patientId     Int
+  weekStartDate DateTime
+  weekEndDate   DateTime
+  summaryText   String
+  generatedAt   DateTime         @default(now())
+  sentStatus    ReportSentStatus @default(pending)
+  sentAt        DateTime?
+
+  caregiver User @relation("CaregiverReports", fields: [caregiverId], references: [id])
+  patient   User @relation("PatientReports", fields: [patientId], references: [id])
+
+  @@map("weekly_summary_reports")
+}
+
+model AiChatConversation {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  relatedMedicationId Int?
+  startedAt           DateTime  @default(now())
+  endedAt             DateTime?
+
+  user       User            @relation(fields: [userId], references: [id])
+  medication Medication?     @relation(fields: [relatedMedicationId], references: [id])
+  messages   AiChatMessage[]
+
+  @@map("ai_chat_conversations")
+}
+
+model AiChatMessage {
+  id              Int        @id @default(autoincrement())
+  conversationId  Int
+  senderType      SenderType
+  messageText     String
+  disclaimerShown Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+
+  conversation AiChatConversation @relation(fields: [conversationId], references: [id])
+
+  @@map("ai_chat_messages")
+}
+
+model AiInsight {
+  id                  Int         @id @default(autoincrement())
+  patientId           Int
+  relatedMedicationId Int?
+  insightType         InsightType
+  insightText         String
+  generatedAt         DateTime    @default(now())
+  isDismissed         Boolean     @default(false)
+  dismissedAt         DateTime?
+
+  patient    User        @relation(fields: [patientId], references: [id])
+  medication Medication? @relation(fields: [relatedMedicationId], references: [id])
+
+  @@map("ai_insights")
+}
+
+model DrugInteraction {
+  id              Int           @id @default(autoincrement())
+  medicineNameA   String
+  medicineNameB   String
+  severityLevel   SeverityLevel
+  description     String
+  sourceReference String?
+
+  flags MedicationInteractionFlag[]
+
+  @@map("drug_interactions")
+}
+
+model MedicationInteractionFlag {
+  id             Int       @id @default(autoincrement())
+  patientId      Int
+  medicationId1  Int
+  medicationId2  Int
+  interactionId  Int
+  flaggedAt      DateTime  @default(now())
+  acknowledged   Boolean   @default(false)
+  acknowledgedAt DateTime?
+
+  patient     User            @relation(fields: [patientId], references: [id])
+  medication1 Medication      @relation("MedicationOne", fields: [medicationId1], references: [id])
+  medication2 Medication      @relation("MedicationTwo", fields: [medicationId2], references: [id])
+  interaction DrugInteraction @relation(fields: [interactionId], references: [id])
+
+  @@map("medication_interaction_flags")
+}
+
+model UserPreference {
+  id                           Int                 @id @default(autoincrement())
+  userId                       Int                 @unique
+  preferredNotificationChannel NotificationChannel
+  language                     String              @default("en")
+  theme                        Theme               @default(light)
+  timezone                     String?
+  updatedAt                    DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_preferences")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  actionType String
+  entityType String
+  entityId   Int?
+  ipAddress  String?
+  timestamp  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
