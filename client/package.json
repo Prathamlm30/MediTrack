@@ -13,6 +13,7 @@
     "vite": "8.3.0"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.4"

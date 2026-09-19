@@ -1,16 +1,10 @@
-import express from 'express';
-import cors from 'cors';
+import app from './app.js';
 import prisma from './prismaClient.js';
 import redis from './config/redis.js';
-import healthRoutes from './routes/health.routes.js';
 
-const app = express();
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 3000);
 
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
-app.use(express.json());
-app.use('/api', healthRoutes);
 
 let server;
 let stopping = false;

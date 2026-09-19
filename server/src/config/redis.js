@@ -1,7 +1,7 @@
 import Redis from 'ioredis';
 import { requiredEnv } from './env.js';
 
-// Reserved for refresh tokens in Phase 1. Phase 0 only establishes connectivity.
+// Auth sessions and short-lived, hashed verification/reset tokens (Phase 1).
 const redis = new Redis(requiredEnv('REDIS_URL'), {
   lazyConnect: true,
   connectTimeout: 5000,

@@ -1,0 +1,16 @@
+import express from 'express';
+import cors from 'cors';
+import './config/env.js';
+import healthRoutes from './routes/health.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import errorHandler from './middleware/errorHandler.js';
+
+const app = express();
+app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
+app.use(express.json({ limit: '32kb' }));
+app.use('/api/auth', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, authRoutes);
+app.use('/api/users', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, userRoutes);
+app.use('/api', healthRoutes);
+app.use(errorHandler);
+export default app;
