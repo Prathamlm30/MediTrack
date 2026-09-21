@@ -1,0 +1,189 @@
+/* MediTrack design tokens. Single source of truth for color, type, space,
+   radius, and elevation. No hard-coded values anywhere else in the app. */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --field:        #E8EDEC;  /* page background, cool low-chroma */
+  --paper:        #FDFDFC;  /* card and form surface */
+  --paper-sunk:   #F1F4F3;  /* inset areas, table headers, disabled fields */
+  --rail:         #0E1A1F;  /* left navigation rail, auth brand panel */
+  --rail-ink:     #C6D4D3;  /* text on the rail */
+  --rail-ink-dim: #7C908F;
+
+  /* Text */
+  --ink:          #0E1A1F;
+  --ink-2:        #3E5057;
+  --ink-3:        #6E8086;
+  --ink-inverse:  #FDFDFC;
+
+  /* Lines */
+  --line:         rgba(14, 26, 31, 0.10);
+  --line-strong:  rgba(14, 26, 31, 0.20);
+
+  /* Brand */
+  --brand:        #0A5D52;
+  --brand-hover:  #084B42;
+  --brand-tint:   #D8E8E3;
+  --brand-ink:    #FFFFFF;
+
+  /* Focus, deliberately distinct from brand so it reads on brand surfaces */
+  --focus:        #1B87A0;
+  --focus-ring:   0 0 0 2px var(--paper), 0 0 0 4px var(--focus);
+
+  /* Dose status */
+  --taken:        #1F6F4A;  --taken-bg:   #DEEDE4;
+  --missed:       #9E2B25;  --missed-bg:  #F6E0DE;
+  --skipped:      #6F6140;  --skipped-bg: #EFEADE;
+  --snoozed:      #3B5B8C;  --snoozed-bg: #E0E7F3;
+  --pending:      #6E8086;  --pending-bg: #E9EDEC;
+
+  /* Refill and warnings */
+  --warn:         #8A5A10;  --warn-bg:    #F6EBD6;
+  --danger:       #9E2B25;  --danger-bg:  #F6E0DE;
+
+  /* Time-of-day arc */
+  --tod-morning:  #C08A34;
+  --tod-midday:   #40809A;
+  --tod-evening:  #7E5F96;
+  --tod-night:    #434E88;
+
+  /* Type */
+  --font-ui:      'Public Sans Variable', 'Public Sans', system-ui, -apple-system,
+                  'Segoe UI', sans-serif;
+  --font-display: 'Newsreader Variable', 'Newsreader', Georgia, 'Times New Roman',
+                  serif;
+
+  --t-caption:    0.75rem;   /* 12 */
+  --t-small:      0.8125rem; /* 13 */
+  --t-body:       0.9375rem; /* 15 */
+  --t-body-lg:    1.0625rem; /* 17 */
+  --t-h4:         1.25rem;   /* 20 */
+  --t-h3:         1.5625rem; /* 25 */
+  --t-h2:         2.0625rem; /* 33 */
+  --t-h1:         2.75rem;   /* 44 */
+
+  --lh-tight:     1.15;
+  --lh-heading:   1.25;
+  --lh-body:      1.55;
+
+  /* Space, 4px base */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s7: 32px; --s8: 40px; --s9: 56px; --s10: 72px;
+
+  /* Single-line controls: independent of field help/error layout. */
+  --h-control: 48px;
+  --danger-hover: color-mix(in srgb, var(--danger) 88%, var(--ink) 12%);
+
+  /* Radius, tiered by role */
+  --r-control: 5px;
+  --r-card:    9px;
+  --r-layer:   14px;
+  --r-pill:    999px;
+
+  /* Elevation, floating layers only */
+  --shadow-layer: 0 10px 28px -8px rgba(14, 26, 31, 0.22),
+                  0 2px 6px -2px rgba(14, 26, 31, 0.10);
+
+  /* Layout */
+  --rail-w:       248px;
+  --content-max:  1080px;
+  --measure:      66ch;
+
+  /* Motion */
+  --dur-fast:   120ms;
+  --dur-base:   180ms;
+  --ease:       cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Dark values, applied both by system preference and by the stored
+   UserPreference.theme written onto <html data-theme="...">.
+   The :not([data-theme='light']) guard lets an explicit light preference
+   win over the operating system setting. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --field:        #0B1417;
+    --paper:        #121E22;
+    --paper-sunk:   #0F191D;
+    --rail:         #080F12;
+    --rail-ink:     #C6D4D3;
+    --rail-ink-dim: #78898C;
+
+    --ink:          #E6EDEC;
+    --ink-2:        #A7B7B9;
+    --ink-3:        #7C8E92;
+    --ink-inverse:  #0B1417;
+
+    --line:         rgba(230, 237, 236, 0.12);
+    --line-strong:  rgba(230, 237, 236, 0.24);
+
+    --brand:        #4FB3A0;
+    --brand-hover:  #66C4B1;
+    --brand-tint:   #10312C;
+    --brand-ink:    #06201C;
+
+    --focus:        #5AC0D6;
+
+    --taken:   #5FBE8E;  --taken-bg:   #123326;
+    --missed:  #E28C85;  --missed-bg:  #3A1614;
+    --skipped: #C4B48C;  --skipped-bg: #2C2717;
+    --snoozed: #93ACD8;  --snoozed-bg: #17233A;
+    --pending: #7C8E92;  --pending-bg: #19242A;
+
+    --warn:    #D9A24E;  --warn-bg:    #33260F;
+    --danger:  #E28C85;  --danger-bg:  #3A1614;
+
+    --tod-morning: #D6A354;
+    --tod-midday:  #63A2BA;
+    --tod-evening: #9D80B2;
+    --tod-night:   #6975AF;
+
+    --shadow-layer: 0 10px 28px -8px rgba(0, 0, 0, 0.55),
+                    0 2px 6px -2px rgba(0, 0, 0, 0.40);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --field:        #0B1417;
+  --paper:        #121E22;
+  --paper-sunk:   #0F191D;
+  --rail:         #080F12;
+  --rail-ink:     #C6D4D3;
+  --rail-ink-dim: #78898C;
+  --ink:          #E6EDEC;
+  --ink-2:        #A7B7B9;
+  --ink-3:        #7C8E92;
+  --ink-inverse:  #0B1417;
+  --line:         rgba(230, 237, 236, 0.12);
+  --line-strong:  rgba(230, 237, 236, 0.24);
+  --brand:        #4FB3A0;
+  --brand-hover:  #66C4B1;
+  --brand-tint:   #10312C;
+  --brand-ink:    #06201C;
+  --focus:        #5AC0D6;
+  --taken:   #5FBE8E;  --taken-bg:   #123326;
+  --missed:  #E28C85;  --missed-bg:  #3A1614;
+  --skipped: #C4B48C;  --skipped-bg: #2C2717;
+  --snoozed: #93ACD8;  --snoozed-bg: #17233A;
+  --pending: #7C8E92;  --pending-bg: #19242A;
+  --warn:    #D9A24E;  --warn-bg:    #33260F;
+  --danger:  #E28C85;  --danger-bg:  #3A1614;
+  --tod-morning: #D6A354;
+  --tod-midday:  #63A2BA;
+  --tod-evening: #9D80B2;
+  --tod-night:   #6975AF;
+  --shadow-layer: 0 10px 28px -8px rgba(0, 0, 0, 0.55),
+                  0 2px 6px -2px rgba(0, 0, 0, 0.40);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,6 @@
+.pill { display: inline-flex; align-items: center; gap: var(--s1); border-radius: var(--r-pill); padding: var(--s1) var(--s2); font-size: var(--t-small); font-weight: 600; }
+.taken { color: var(--taken); background: var(--taken-bg); }
+.missed { color: var(--missed); background: var(--missed-bg); }
+.skipped { color: var(--skipped); background: var(--skipped-bg); }
+.snoozed { color: var(--snoozed); background: var(--snoozed-bg); }
+.pending { color: var(--ink-2); background: var(--pending-bg); }

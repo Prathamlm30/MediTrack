@@ -1,18 +1,33 @@
-import { createContext, useCallback, useContext, useState } from 'react';
-
+import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import { getSession, subscribeSession, setSession, request, restoreSession } from '../api/client.js';
+import * as auth from '../api/auth.js';
+import { updatePreferences } from '../api/users.js';
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
-  // Keep access tokens in memory; existing backend auth remains authoritative.
-  const [session, setSession] = useState(null);
-  const request = useCallback(async (path, options = {}) => {
-    const response = await fetch(path, { ...options, headers: {
-      ...options.headers, Authorization: `Bearer ${session?.accessToken || ''}`,
-    } });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Request failed.');
-    return data;
-  }, [session?.accessToken]);
-  return <AuthContext.Provider value={{ session, setSession, request }}>{children}</AuthContext.Provider>;
+  const session = useSyncExternalStore(subscribeSession, getSession, () => null);
+  const [checking, setChecking] = useState(true);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let live = true;
+    restoreSession().catch((err) => { if (live) setError(err.message); }).finally(() => { if (live) setChecking(false); });
+    return () => { live = false; };
+  }, []);
+  useEffect(() => {
+    const theme = session?.user?.preferences?.theme;
+    if (theme === 'dark' || theme === 'light') document.documentElement.dataset.theme = theme;
+    else delete document.documentElement.dataset.theme;
+  }, [session?.user?.preferences?.theme]);
+  async function retrySession() {
+    setChecking(true); setError('');
+    try { await restoreSession(); } catch (err) { setError(err.message); } finally { setChecking(false); }
+  }
+  async function signOut() { await auth.logout(); setSession(null); }
+  async function setTheme(theme) {
+    const { preferences } = await updatePreferences({ theme });
+    const current = getSession();
+    if (current) setSession({ ...current, user: { ...current.user, preferences } });
+  }
+  return <AuthContext.Provider value={{ session, setSession, request, checking, error, retrySession, signOut, setTheme }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() {
   const context = useContext(AuthContext);

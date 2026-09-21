@@ -1,0 +1,6 @@
+.control { width: 100%; min-width: 0; padding: var(--s3); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--paper); color: var(--ink); }
+.control::placeholder { color: var(--ink-2); }
+.control:focus-visible { box-shadow: var(--focus-ring); }
+.control[aria-invalid='true'] { border-color: var(--danger); }
+.control:disabled, .control[readonly], .control[aria-readonly='true'] { background: var(--paper-sunk); color: var(--ink-2); }
+ .control { resize: vertical; min-height: var(--s10); }

@@ -1,0 +1,10 @@
+import { request, refreshSession } from './client.js';
+const post = (path, body) => request(`/api/auth/${path}`, { method: 'POST', body, auth: false });
+export const register = ({ fullName, email, phoneNumber, password }) => post('register', { fullName, email, phoneNumber, password });
+export const login = ({ email, password }) => post('login', { email, password });
+export const google = (idToken) => post('google', { idToken });
+export const refresh = refreshSession;
+export const logout = () => request('/api/auth/logout', { method: 'POST' });
+export const forgotPassword = (email) => post('forgot-password', { email });
+export const resetPassword = (token, newPassword) => post('reset-password', { token, newPassword });
+export const verifyEmail = (token) => request(`/api/auth/verify-email/${encodeURIComponent(token)}`, { auth: false });

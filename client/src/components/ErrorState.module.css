@@ -1,0 +1,2 @@
+.error { padding: var(--s6); border: 1px solid var(--danger); border-radius: var(--r-card); background: var(--paper); display: grid; justify-items: start; gap: var(--s3); }
+.error > svg { color: var(--danger); }

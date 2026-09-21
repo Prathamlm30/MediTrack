@@ -1,36 +1,40 @@
-import { useState } from 'react';
-import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
-import { Link, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/dashboard/Dashboard.jsx';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import Placeholder from './pages/Placeholder.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
 import { ActivePatientProvider } from './context/ActivePatientContext.jsx';
-
-function GoogleTest({ title }) {
-  const { setSession } = useAuth();
-  const [result, setResult] = useState(null);
-  async function signIn(response) {
-    try {
-      const res = await fetch('/api/auth/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: response.credential }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSession(data);
-      const profile = await fetch('/api/users/me', { headers: { Authorization: `Bearer ${data.accessToken}` } });
-      if (!profile.ok) throw new Error('App JWT profile check failed.');
-      setResult({ message: 'Google Sign-In and authenticated profile request succeeded.', ...await profile.json(), tokenType: data.tokenType, expiresIn: data.expiresIn });
-    } catch (error) { setResult({ error: error.message }); }
-  }
-  return <><h1>{title}</h1><GoogleLogin onSuccess={signIn} onError={() => setResult({ error: 'Google Sign-In failed.' })} />
-    <p>Inspect the /api/auth/google response in browser Network tools for the app JWT pair.</p>
-    {result && <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(result, null, 2)}</pre>}</>;
-}
+import { ToastProvider } from './components/Toast.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import AppShell from './components/layout/AppShell.jsx';
+import AuthShell from './components/layout/AuthShell.jsx';
+import Skeleton from './components/Skeleton.jsx';
+const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const googlePage = (title) => clientId ? <GoogleOAuthProvider clientId={clientId}><GoogleTest title={title} /></GoogleOAuthProvider>
-    : <p>Set VITE_GOOGLE_CLIENT_ID in client/.env to test Google Sign-In, or use the dashboard email login.</p>;
-  return <AuthProvider><ActivePatientProvider><main style={{ maxWidth: 760, margin: '3rem auto', padding: '0 1rem', fontFamily: 'sans-serif' }}>
-    <nav><Link to="/login">Login</Link> | <Link to="/signup">Sign Up</Link> | <Link to="/dashboard">Dashboard</Link></nav>
-    <Routes><Route path="/login" element={googlePage('Login')} /><Route path="/signup" element={googlePage('Sign Up')} />
-      <Route path="/dashboard/*" element={<Dashboard />} />
-      <Route path="*" element={<p>Choose Login or Sign Up to test Google authentication.</p>} /></Routes>
-  </main></ActivePatientProvider></AuthProvider>;
+  if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
+  return <AuthProvider><ActivePatientProvider><ToastProvider><Routes>
+    <Route element={<AuthShell />}>
+      <Route path="/" element={<Placeholder title="MediTrack" landing />} />
+      <Route path="/login" element={<Placeholder title="Log in" login />} />
+      <Route path="/signup" element={<Placeholder title="Sign up" signup />} />
+      <Route path="/forgot-password" element={<Placeholder title="Forgot password" />} />
+      <Route path="/reset-password" element={<Placeholder title="Reset password" reset />} />
+      <Route path="/verify-email/:token" element={<Placeholder title="Verify email" verification />} />
+      <Route path="/invitations/:token" element={<Placeholder title="Invitation" invitation />} />
+    </Route>
+    <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/patients" element={<Placeholder title="Patients" />} />
+      <Route path="/patients/:patientId" element={<Dashboard />} />
+      <Route path="/relationships" element={<Placeholder title="Relationships" />} />
+      <Route path="/relationships/invite" element={<Placeholder title="Invite someone" />} />
+      <Route path="/profile" element={<Placeholder title="Profile" />} />
+      <Route path="/profile/edit" element={<Placeholder title="Edit profile" />} />
+      <Route path="/settings" element={<Placeholder title="Account settings" />} />
+      <Route path="/settings/notifications" element={<Placeholder title="Notification preferences" />} />
+      <Route path="/dashboard/my-patients" element={<Navigate to="/patients" replace />} />
+      <Route path="/dashboard/caregiver" element={<Dashboard />} />
+    </Route></Route>
+    <Route path="*" element={<Placeholder title="Page not found" />} />
+  </Routes></ToastProvider></ActivePatientProvider></AuthProvider>;
 }

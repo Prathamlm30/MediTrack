@@ -1,0 +1,3 @@
+.modal { color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-layer); box-shadow: var(--shadow-layer); padding: var(--s6); width: min(calc(100% - var(--s7)), 540px); max-height: calc(100dvh - var(--s7)); overflow: auto; }
+.modal::backdrop { background: var(--rail); opacity: .65; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s4); }

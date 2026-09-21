@@ -1,0 +1,4 @@
+.field { display: grid; align-content: start; gap: var(--s2); min-width: 0; }
+.field label { font-weight: 600; }
+.help { color: var(--ink-2); font-size: var(--t-small); }
+.error { color: var(--danger); font-size: var(--t-small); }

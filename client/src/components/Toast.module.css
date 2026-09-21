@@ -1,0 +1,7 @@
+.stack { position: fixed; z-index: 10; bottom: var(--s10); right: var(--s4); width: min(380px, calc(100% - var(--s7))); display: grid; gap: var(--s2); }
+.toast { display: flex; align-items: center; gap: var(--s3); padding: var(--s4); border: 1px solid var(--line-strong); border-radius: var(--r-layer); background: var(--paper); color: var(--ink); box-shadow: var(--shadow-layer); }
+.toast span { flex: 1; }
+.toast button { border: 0; background: transparent; color: inherit; padding: var(--s2); border-radius: var(--r-control); }
+.success > svg { color: var(--taken); }
+.error > svg { color: var(--danger); }
+.info > svg { color: var(--brand); }

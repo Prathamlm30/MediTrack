@@ -1,0 +1,10 @@
+.shell { min-height: 100dvh; display: grid; grid-template-columns: 1fr 1fr; }
+.brand { background: var(--rail); color: var(--rail-ink); padding: var(--s9); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: var(--s10); }
+.wordmark, .mobileWordmark { font-family: var(--font-ui); font-size: var(--t-h2); color: inherit; text-decoration: none; }
+.brand p { font: var(--t-h1)/var(--lh-tight) var(--font-display); }
+.motif { margin-top: auto; height: var(--s10); border-top: 1px solid var(--rail-ink); display: flex; justify-content: space-around; opacity: .06; }
+.motif i { width: var(--s6); height: var(--s6); border: 2px solid var(--rail-ink); border-radius: var(--r-pill); transform: translateY(-50%); }
+.main { display: flex; justify-content: center; align-items: center; padding: var(--s7); background: var(--paper); }
+.column { width: 100%; max-width: 380px; display: grid; gap: var(--s5); }
+.mobileWordmark { display: none; }
+@media (max-width: 899px) { .shell { display: block; } .brand { display: none; } .main { min-height: 100dvh; padding: var(--s4); flex-direction: column; align-items: flex-start; gap: var(--s8); } .mobileWordmark { display: block; } .column { max-width: none; } }

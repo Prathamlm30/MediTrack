@@ -1,0 +1,5 @@
+.banner { display: flex; align-items: start; gap: var(--s3); padding: var(--s4); border: 1px solid currentColor; border-radius: var(--r-control); }
+.banner > svg { flex-shrink: 0; margin-top: var(--s1); }
+.info { background: var(--brand-tint); color: var(--brand); }
+.warning { background: var(--warn-bg); color: var(--warn); }
+.danger { background: var(--danger-bg); color: var(--danger); }

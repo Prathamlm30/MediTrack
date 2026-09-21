@@ -1,0 +1,4 @@
+.tabs { display: flex; gap: var(--s2); border-bottom: 1px solid var(--line); overflow-x: auto; padding: var(--s1); }
+.tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--ink-2); padding: var(--s3); white-space: nowrap; }
+.tabs button[aria-selected='true'] { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
+.panel { padding-top: var(--s4); }

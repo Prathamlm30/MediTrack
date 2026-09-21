@@ -1,0 +1,4 @@
+.control { width: var(--s5); height: var(--s5); margin: 0; accent-color: var(--brand); border-radius: var(--r-control); }
+.control[aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 2px; }
+.control:disabled, .control[aria-disabled='true'] { accent-color: var(--ink-2); }
+.control:focus-visible { box-shadow: var(--focus-ring); }

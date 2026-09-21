@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useActivePatient } from '../../context/ActivePatientContext.jsx';
 import './dashboard.css';
+import * as auth from '../../api/auth.js';
+import { getPatientDashboard, getCaregiverDashboard } from '../../api/dashboard.js';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
+import Button from '../../components/Button.jsx';
+import Skeleton from '../../components/Skeleton.jsx';
+import Banner from '../../components/Banner.jsx';
+import Field from '../../components/Field.jsx';
+import TextInput from '../../components/TextInput.jsx';
+import PasswordInput from '../../components/PasswordInput.jsx';
 
-function DashboardLogin() {
+export function DashboardLogin({ onSuccess }) {
   const { setSession } = useAuth();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -12,55 +21,60 @@ function DashboardLogin() {
     event.preventDefault(); setBusy(true); setError('');
     const fields = new FormData(event.currentTarget);
     try {
-      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: fields.get('email'), password: fields.get('password') }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Sign-in failed.');
-      setSession(data);
+      const data = await auth.login({ email: fields.get('email'), password: fields.get('password') });
+      setSession(data); onSuccess?.();
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
-  return <section className="dashboard"><h1>Your MediTrack dashboard</h1><p>Sign in to view your medicines or linked patients.</p>
-    <form onSubmit={login}><label>Email<input name="email" type="email" autoComplete="username" required /></label>
-      <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
-      <button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button></form>
+  async function googleLogin(response) {
+    setBusy(true); setError('');
+    try { setSession(await auth.google(response.credential)); onSuccess?.(); }
+    catch (err) { setError(err.message); } finally { setBusy(false); }
+  }
+  return <section className="dashboard"><p>Phase 3 sign-in controls</p>
+    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <GoogleLogin onSuccess={googleLogin} onError={() => setError('Google Sign-In failed.')} /></GoogleOAuthProvider>}
+    <form onSubmit={login}><Field label="Email" required><TextInput name="email" type="email" autoComplete="username" /></Field>
+      <Field label="Password" required><PasswordInput name="password" autoComplete="current-password" /></Field>
+      <Button type="submit" loading={busy}>Sign in</Button></form>
     {error && <p role="alert">{error}</p>}</section>;
 }
 
-function DashboardData({ path, permissionLevel }) {
+function DashboardData({ patientId, permissionLevel }) {
   const { request, session } = useAuth();
   const [state, setState] = useState(null);
   const [revision, setRevision] = useState(0);
-  const key = `${session.accessToken}:${path}:${permissionLevel}`;
+  const key = `${session.user.id}:${patientId || "self"}:${permissionLevel}`;
+  const { refreshPatients } = useActivePatient();
   useEffect(() => {
     let disposed = false;
     let controller;
     async function load() {
       controller?.abort(); controller = new AbortController();
       try {
-        const data = await request(path, { signal: controller.signal });
+        const data = await (patientId ? getCaregiverDashboard(patientId, { signal: controller.signal }) : getPatientDashboard({ signal: controller.signal }));
         if (!disposed) setState({ key, data });
       } catch (error) {
-        if (!disposed && error.name !== 'AbortError') setState({ key, error: error.message });
+        if (!disposed && error.name !== 'AbortError') { setState({ key, error: error.status === 403 ? 'Access changed. This patient’s information is no longer available.' : error.message }); if (error.status === 403) refreshPatients(); }
       }
     }
     void load();
     const interval = setInterval(load, 30000);
     window.addEventListener('focus', load);
     return () => { disposed = true; controller?.abort(); clearInterval(interval); window.removeEventListener('focus', load); };
-  }, [key, path, request, revision]);
+  }, [key, patientId, request, revision, refreshPatients]);
   const current = state?.key === key ? state : null;
   const data = current?.data;
-  if (!current) return <p role="status">Loading dashboard…</p>;
-  if (current.error) return <div><p role="alert">{current.error} Sign in again if your session has expired.</p>
+  if (!current) return <Skeleton height="calc(var(--s10) * 5)" label="Loading dashboard" />;
+  if (current.error) return <div><p role="alert">{current.error}</p>
     <button onClick={() => setRevision((value) => value + 1)}>Retry</button></div>;
-  const date = (value) => new Date(value).toLocaleString(undefined, { timeZone: data.timezone });
+  const date = (value) => new Intl.DateTimeFormat(undefined, { timeZone: data.timezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   return <>
     <div className="dashboard-heading"><div><h2>{data.patient.fullName}</h2>
       <p>{data.readOnly ? 'Caregiver view · Read-only' : 'Your daily overview'} · {data.timezone}</p></div>
       <button onClick={() => setRevision((value) => value + 1)}>Refresh</button></div>
     <p className="dashboard-muted">Updated {date(data.generatedAt)} · Refreshes every 30 seconds</p>
-    {data.permissionLevel === 'alerts_only' && <p role="status">Alerts-only access. Dose and adherence details are not shared.</p>}
+    {!Object.hasOwn(data, 'todayDoses') && <Banner>You have alerts-only access. {data.patient.fullName} has not shared their dose schedule or adherence with you. They can change this from their relationships page.</Banner>}
     {Object.hasOwn(data, 'todayDoses') && <section><h3>Today’s doses</h3>
       {data.todayDoses.length ? <ul className="dashboard-list">{data.todayDoses.map((dose) => <li key={dose.id}>
         <strong>{dose.schedule.medication.medicineName}</strong><span>{dose.schedule.doseAmount} {dose.schedule.medication.dosageUnit} · {date(dose.scheduledDatetime)}</span>
@@ -78,27 +92,32 @@ function DashboardData({ path, permissionLevel }) {
 }
 
 export default function Dashboard() {
-  const { session, setSession } = useAuth();
+  const { session, signOut } = useAuth();
   const { pathname } = useLocation();
+  const { patientId } = useParams();
+  const navigate = useNavigate();
+  const [signOutError, setSignOutError] = useState('');
   const { patients, activePatient, setActivePatientId, loading, error, refreshPatients } = useActivePatient();
+  useEffect(() => { if (patientId) setActivePatientId(patientId); }, [patientId, setActivePatientId]);
   if (!session) return <DashboardLogin />;
-  const caregiver = pathname === '/dashboard/caregiver';
+  const caregiver = Boolean(patientId) || pathname === '/dashboard/caregiver';
   const overview = pathname === '/dashboard/my-patients';
-  return <div className="dashboard"><div className="dashboard-heading"><h1>MediTrack</h1>
-    <button onClick={() => setSession(null)}>Sign out of dashboard</button></div>
-    <nav aria-label="Dashboards"><Link to="/dashboard">My dashboard</Link><Link to="/dashboard/my-patients">Linked patients</Link>
-      <Link to="/dashboard/caregiver">Caregiver dashboard</Link></nav>
+  return <div className="dashboard tabular-nums"><div className="dashboard-heading"><h1>MediTrack</h1>
+    <button onClick={async () => { try { await signOut(); } catch (err) { setSignOutError(err.message); } }}>Sign out of dashboard</button></div>
+    {signOutError && <p role="alert">{signOutError}</p>}
+    <nav aria-label="Dashboards"><Link to="/dashboard">My dashboard</Link><Link to="/patients">Linked patients</Link>
+      {activePatient && <Link to={`/patients/${activePatient.patient.id}`}>Caregiver dashboard</Link>}</nav>
     {overview ? <><h2>Linked patients</h2><button onClick={refreshPatients}>Refresh patients</button>
       {loading ? <p role="status">Loading linked patients…</p> : error ? <p role="alert">{error}</p> : patients.length ?
         <ul className="dashboard-list">{patients.map((row) => <li key={row.patient.id}><strong>{row.patient.fullName}</strong>
           <span>{row.relationshipType} · {row.permissionLevel.replaceAll('_', ' ')}</span>
-          <Link to="/dashboard/caregiver" onClick={() => setActivePatientId(row.patient.id)}>View dashboard</Link></li>)}</ul>
+          <Link to={`/patients/${row.patient.id}`} onClick={() => setActivePatientId(row.patient.id)}>View dashboard</Link></li>)}</ul>
         : <p>No active linked patients.</p>}</> : caregiver ? <>
-      <h2>Caregiver dashboard</h2>{loading ? <p role="status">Loading linked patients…</p> : error ? <p role="alert">{error}</p> : activePatient ? <>
-        <label>Active patient<select value={activePatient.patient.id} onChange={(event) => setActivePatientId(event.target.value)}>
+      <h2>Caregiver dashboard</h2>{loading ? <p role="status">Loading linked patients…</p> : error ? <p role="alert">{error}</p> : (patientId || activePatient) ? <>
+        <label>Active patient<select value={patientId || activePatient?.patient.id} onChange={(event) => { setActivePatientId(event.target.value); navigate(`/patients/${event.target.value}`); }}>
           {patients.map((row) => <option key={row.patient.id} value={row.patient.id}>{row.patient.fullName}</option>)}
         </select></label>
-        <DashboardData path={`/api/dashboard/caregiver/${activePatient.patient.id}`} permissionLevel={activePatient.permissionLevel} />
+        <DashboardData patientId={patientId || activePatient.patient.id} permissionLevel={patients.find((row) => row.patient.id === Number(patientId))?.permissionLevel || activePatient?.permissionLevel} />
       </> : <p>No active linked patients.</p>}
-    </> : <DashboardData path="/api/dashboard/patient" />}</div>;
+    </> : <DashboardData />}</div>;
 }

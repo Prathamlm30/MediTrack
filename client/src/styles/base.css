@@ -1,0 +1,22 @@
+*, *::before, *::after { box-sizing: border-box; }
+body, h1, h2, h3, h4, p { margin: 0; }
+body { min-width: 360px; background: var(--field); color: var(--ink); font: var(--t-body)/var(--lh-body) var(--font-ui); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+a { color: var(--brand); text-underline-offset: var(--s1); }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
+img, svg { vertical-align: middle; }
+img { max-width: 100%; }
+h1 { font-size: var(--t-h2); }
+h2 { font-size: var(--t-h3); }
+h3 { font-size: var(--t-h4); }
+h1, h2, h3, h4 { line-height: var(--lh-heading); overflow-wrap: anywhere; }
+p { max-width: var(--measure); }
+.tabular-nums, time { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
