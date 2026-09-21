@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import relationshipRoutes from './routes/relationships.routes.js';
 import invitationRoutes from './routes/invitations.routes.js';
+import dashboardRoutes from './routes/dashboard/index.js';
 import errorHandler from './middleware/errorHandler.js';
 
 const app = express();
@@ -15,6 +16,7 @@ app.use('/api/auth', (req, res, next) => { res.set('Cache-Control', 'no-store');
 app.use('/api/users', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, userRoutes);
 app.use('/api/relationships', relationshipRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', healthRoutes);
 app.use(errorHandler);
 export default app;

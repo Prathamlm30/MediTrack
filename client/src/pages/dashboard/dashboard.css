@@ -1,0 +1,15 @@
+.dashboard { color: #18312e; line-height: 1.5; }
+.dashboard h1, .dashboard h2, .dashboard h3 { line-height: 1.2; }
+.dashboard nav, .dashboard-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+.dashboard nav { justify-content: flex-start; border-bottom: 1px solid #cbd9d5; padding: 1rem 0; margin-bottom: 1.5rem; }
+.dashboard a { color: #086957; }
+.dashboard section { padding: 1rem; margin: 1rem 0; border: 1px solid #cbd9d5; border-radius: 10px; background: #f7faf9; }
+.dashboard button, .dashboard input, .dashboard select { font: inherit; padding: .6rem .8rem; border: 1px solid #819b92; border-radius: 6px; }
+.dashboard button { background: #e8f3ee; cursor: pointer; }
+.dashboard button:disabled { cursor: wait; opacity: .6; }
+.dashboard label { display: grid; gap: .3rem; margin-bottom: 1rem; }
+.dashboard input, .dashboard select { box-sizing: border-box; width: 100%; min-width: 0; }
+.dashboard-list { padding: 0; list-style: none; }
+.dashboard-list li { display: grid; gap: .3rem; border-bottom: 1px solid #dbe5e1; padding: .8rem 0; }
+.dashboard-muted { color: #536b64; font-size: .9rem; }
+.dashboard [role=alert] { color: #9a2424; }
