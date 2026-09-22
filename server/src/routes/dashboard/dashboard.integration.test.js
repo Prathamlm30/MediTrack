@@ -57,15 +57,20 @@ test('Phase 3: live scoped dashboards, permission filtering and multiple patient
       { patientId: patient.id, periodType: 'weekly', periodStartDate: start, periodEndDate: end,
         totalScheduledDoses: 10, takenCount: 10, missedCount: 0, skippedCount: 0, adherencePercentage: 100 },
     ] });
+    const inventoryNow = Date.now();
     await prisma.medicineInventory.createMany({ data: [null, -1, 8].map((days) => ({
       patientId: patient.id, medicationId: medications[0].id, quantityUnit: 'tablets', quantityTotal: 30,
       quantityRemaining: 20, refillThreshold: 5, refillAmount: 30,
-      estimatedRunoutDate: days === null ? null : new Date(Date.now() + days * 86400000),
+      estimatedRunoutDate: days === null ? null : new Date(inventoryNow + days * 86400000),
     })) });
     const own = await get('/patient', patient);
     assert.equal(own.patient.id, patient.id); assert.equal(own.readOnly, false);
     assert.equal(own.todayDoses.length, 3); assert.equal(own.adherence.adherencePercentage, '33.33');
-    assert.equal(own.refillAlerts.length, 1); assert.equal(own.timezone, 'Asia/Kolkata');
+    assert.equal(own.refillAlerts.length, 2); assert.equal(own.timezone, 'Asia/Kolkata');
+    assert.equal(own.refillAlerts[0].medicationId, medications[0].id);
+    assert.equal(own.refillAlerts[0].estimatedRunoutDate, new Date(inventoryNow - 86400000).toISOString());
+    assert.ok(new Date(own.refillAlerts[1].estimatedRunoutDate) > new Date(own.generatedAt));
+    assert.ok(new Date(own.refillAlerts[1].estimatedRunoutDate) <= new Date(new Date(own.generatedAt).getTime() + 7 * 86400000));
     const caregiverOwn = await get('/patient', caregiver);
     assert.deepEqual(caregiverOwn.todayDoses, []); assert.equal(caregiverOwn.adherence, null);
     assert.deepEqual(caregiverOwn.refillAlerts, []);

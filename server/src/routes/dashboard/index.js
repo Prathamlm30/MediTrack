@@ -31,7 +31,7 @@ async function dashboard(patientId, permissionLevel, readOnly) {
   const now = new Date();
   const { start, end, timezone } = dayWindow(now, patient.preferences?.timezone || patient.timezone);
   const refillAlerts = await prisma.medicineInventory.findMany({
-    where: { patientId, medication: { patientId }, estimatedRunoutDate: { gte: now, lte: new Date(now.getTime() + 7 * 86400000) } },
+    where: { patientId, medication: { patientId }, estimatedRunoutDate: { lte: new Date(now.getTime() + 7 * 86400000) } },
     select: { id: true, medicationId: true, quantityRemaining: true, quantityUnit: true, estimatedRunoutDate: true,
       medication: { select: { id: true, medicineName: true } } },
     orderBy: [{ estimatedRunoutDate: 'asc' }, { id: 'asc' }],
