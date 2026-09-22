@@ -2,8 +2,10 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import Button from './Button.jsx';
 import Modal from './Modal.jsx';
+import ErrorState from './ErrorState.jsx';
+import Skeleton from './Skeleton.jsx';
 import s from './PatientSwitcher.module.css';
-export default function PatientSwitcher({ patients, activePatientId, onChange, loading = false, error }) {
+export default function PatientSwitcher({ patients, activePatientId, onChange, loading = false, error, onRetry }) {
   const [open, setOpen] = useState(false);
   const [mobile, setMobile] = useState(() => matchMedia('(max-width: 767px)').matches);
   const root = useRef(null); const trigger = useRef(null); const menu = useRef(null); const id = useId();
@@ -32,6 +34,9 @@ export default function PatientSwitcher({ patients, activePatientId, onChange, l
     {patients.map(({ patient }) => <button key={patient.id} role="menuitemradio" aria-checked={patient.id === Number(activePatientId)}
       onClick={() => { onChange(patient.id); close(); }}>{patient.fullName}{patient.id === Number(activePatientId) && <Check size={16} strokeWidth={1.5} aria-hidden="true" />}</button>)}
   </div>;
+  if (loading) return <Skeleton height="var(--h-control)" label="Loading patients" />;
+  if (error) return <ErrorState headingLevel={null} title="Could not load patients" onRetry={onRetry}>{error}</ErrorState>;
+  if (!patients.length) return <p>No active linked patients.</p>;
   return <div className={s.switcher} ref={root}><Button ref={trigger} variant="secondary" disabled={loading || !patients.length}
     aria-haspopup={mobile ? 'dialog' : 'menu'} aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => setOpen(!open)}>
     {loading ? 'Loading patients…' : active?.patient.fullName || 'Choose patient'} <ChevronDown size={16} strokeWidth={1.5} aria-hidden="true" /></Button>

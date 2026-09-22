@@ -15,7 +15,7 @@
   /* Text */
   --ink:          #0E1A1F;
   --ink-2:        #3E5057;
-  --ink-3:        #6E8086;
+  --ink-3:        #53666D;
   --ink-inverse:  #FDFDFC;
 
   /* Lines */
@@ -37,7 +37,7 @@
   --missed:       #9E2B25;  --missed-bg:  #F6E0DE;
   --skipped:      #6F6140;  --skipped-bg: #EFEADE;
   --snoozed:      #3B5B8C;  --snoozed-bg: #E0E7F3;
-  --pending:      #6E8086;  --pending-bg: #E9EDEC;
+  --pending:      #53666D;  --pending-bg: #E9EDEC;
 
   /* Refill and warnings */
   --warn:         #8A5A10;  --warn-bg:    #F6EBD6;
@@ -187,3 +187,6 @@
     scroll-behavior: auto !important;
   }
 }
+
+:root { --dashboard-rail-loading: 280px; }
+@media (max-width: 639px) { :root { --dashboard-rail-loading: 740px; } }

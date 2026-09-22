@@ -36,10 +36,18 @@ export function AccountPage({ page }) {
     }, (error) => { if (live) setState({ error }); });
     return () => { live = false; };
   }, [page, attempt, setSession]);
-  if (!state) return <Skeleton height="calc(var(--s10) * 5)" label="Loading your account" />;
-  if (state.error) return <ErrorState title="Could not load your account" onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
+  const title = { profile: 'My profile', edit: 'Edit profile', settings: 'Account settings', preferences: 'Notification preferences' }[page];
+  if (!state) return <div className={s.stack}><PageHeader title={title} /><AccountLoading page={page} /><Skeleton height="var(--s6)" label="Loading account navigation" /></div>;
+  if (state.error) return <ErrorState headingLevel={1} title="Could not load your account" onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
   const Page = { profile: Profile, edit: EditProfile, settings: Settings, preferences: Preferences }[page];
   return <Page key={page} user={session.user} />;
+}
+
+function AccountLoading({ page }) {
+  if (page === 'profile') return <Card><div className={s.stack}><Skeleton height="var(--s8)" label="Loading your account" /><dl className={s.details}>{['Name', 'Email', 'Phone number', 'Date of birth', 'Gender', 'Address', 'Sign-in method'].map((label) => <Detail key={label} label={label} value={<Skeleton height="1.55em" label={`Loading ${label.toLowerCase()}`} />} />)}</dl></div></Card>;
+  if (page === 'settings') return <><Card title="Sign-in details"><Skeleton height="calc(var(--s8) * 3)" label="Loading sign-in details" /></Card><Card title="Password reset"><Skeleton height="calc(var(--s8) * 3)" label="Loading password reset information" /></Card></>;
+  const fields = page === 'edit' ? ['Full name', 'Phone number', 'Address', 'Profile picture URL'] : ['Preferred notification channel', 'Language', 'Theme', 'Timezone'];
+  return <Card><div className={s.form}>{fields.map((label) => <div className={s.stack} key={label}><p>{label}</p><Skeleton height={label === 'Address' ? 'calc(var(--s7) * 3)' : 'var(--h-control)'} label={`Loading ${label.toLowerCase()}`} /></div>)}<Skeleton height="var(--h-control)" label="Loading save controls" /></div></Card>;
 }
 
 function AccountLinks() {
@@ -89,7 +97,7 @@ function EditProfile({ user }) {
       <Field label="Phone number"><TextInput type="tel" autoComplete="tel" maxLength={255} value={values.phoneNumber} onChange={change('phoneNumber')} disabled={busy} /></Field>
       <Field label="Address"><Textarea autoComplete="street-address" maxLength={255} rows={3} value={values.address} onChange={change('address')} disabled={busy} /></Field>
       <Field label="Profile picture URL" help="Use an http or https image link. Leave blank to use your initials." error={fields.profilePictureUrl}><TextInput type="url" maxLength={2048} value={values.profilePictureUrl} onChange={change('profilePictureUrl')} disabled={busy} /></Field>
-      {error && <Banner tone="danger">{error}</Banner>}
+      {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}
       <div className={s.actions}><Button type="submit" loading={busy} disabled={!dirty}>Save changes</Button><Button variant="secondary" disabled={busy} onClick={() => dirty ? setConfirm(true) : navigate('/profile')}>Cancel</Button></div>
     </form></Card>
     <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} onConfirm={() => navigate('/profile')} title="Discard profile changes?" consequence="Your unsaved profile changes will be lost." confirmLabel="Discard changes" destructive />
@@ -107,14 +115,16 @@ function Preferences({ user }) {
   const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   const initial = { preferredNotificationChannel: user.preferences?.preferredNotificationChannel || 'email', language: user.preferences?.language || 'en', timezone: user.preferences?.timezone || browserZone };
   const [values, setValues] = useState(initial); const [saved, setSaved] = useState(initial);
+  const [themeAttempt, setThemeAttempt] = useState(null);
   const [busy, setBusy] = useState(false); const [themeBusy, setThemeBusy] = useState(false); const [error, setError] = useState(''); const [themeError, setThemeError] = useState('');
   const { setSession, setTheme } = useAuth(); const notify = useToast();
   const zones = [...new Set([browserZone, values.timezone, 'UTC', ...(Intl.supportedValuesOf?.('timeZone') || [])])].sort();
   const dirty = Object.keys(saved).some((key) => saved[key] !== values[key]) || !user.preferences?.timezone;
   const change = (key) => (event) => { setValues({ ...values, [key]: event.target.value }); setError(''); };
   async function changeTheme(event) {
+    const theme = event.target.value; setThemeAttempt(theme);
     setThemeBusy(true); setThemeError('');
-    try { await setTheme(event.target.value); notify('Preferences saved.', 'success'); }
+    try { await setTheme(theme); notify('Preferences saved.', 'success'); }
     catch (err) { setThemeError(err.message); } finally { setThemeBusy(false); }
   }
   async function submit(event) {
@@ -131,7 +141,8 @@ function Preferences({ user }) {
       <Field label="Preferred notification channel"><Select value={values.preferredNotificationChannel} onChange={change('preferredNotificationChannel')} disabled={busy || themeBusy}><option value="email">Email</option><option value="push">Push</option><option value="sms">SMS</option><option value="in_app">In app</option></Select></Field>
       <Field label="Language" required help="Save your preferred language code, such as en or hi. The interface is currently in English."><TextInput maxLength={100} value={values.language} onChange={change('language')} disabled={busy || themeBusy} pattern=".*\S.*" /></Field>
       <Field label="Theme" help={themeBusy ? 'Saving theme…' : 'Theme changes are saved immediately.'} error={themeError}><Select value={user.preferences?.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')} onChange={changeTheme} disabled={busy || themeBusy}><option value="light">Light</option><option value="dark">Dark</option></Select></Field>
+      {themeError && <Button variant="secondary" disabled={busy || themeBusy} onClick={() => changeTheme({ target: { value: themeAttempt } })}>Retry</Button>}
       <Field label="Timezone" help="This decides which doses count as today on your dashboard."><Select value={values.timezone} onChange={change('timezone')} disabled={busy || themeBusy}>{zones.map((zone) => <option key={zone} value={zone}>{zone.replaceAll('_', ' ')}</option>)}</Select></Field>
-      {error && <Banner tone="danger">{error}</Banner>}<Button type="submit" loading={busy} disabled={!dirty || themeBusy}>Save preferences</Button>
+      {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}<Button type="submit" loading={busy} disabled={!dirty || themeBusy}>Save preferences</Button>
     </form></Card><AccountLinks /></div>;
 }

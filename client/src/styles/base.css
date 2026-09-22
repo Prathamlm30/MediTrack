@@ -1,6 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; }
 body, h1, h2, h3, h4, p { margin: 0; }
-body { min-width: 360px; background: var(--field); color: var(--ink); font: var(--t-body)/var(--lh-body) var(--font-ui); }
+body { min-width: 0; overflow-wrap: anywhere; background: var(--field); color: var(--ink); font: var(--t-body)/var(--lh-body) var(--font-ui); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
@@ -20,3 +20,7 @@ p { max-width: var(--measure); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.not-found { display: grid; gap: var(--s6); padding: var(--s7); max-width: var(--content-max); margin: auto; }
+input:disabled, select:disabled, textarea:disabled { color: var(--ink-2); background: var(--paper-sunk); opacity: 1; }
+::placeholder { color: var(--ink-3); opacity: 1; }

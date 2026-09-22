@@ -83,8 +83,8 @@ function DashboardData({ patientId }) {
   const data = current?.data;
   useEffect(() => { if (data) hasPainted.current = true; }, [data]);
   const retry = () => setRevision((value) => value + 1);
-  if (!current) return <Skeleton height="calc(var(--s10) * 8)" label="Loading dashboard" />;
-  if (!data) return <ErrorState title={current.accessChanged ? 'Access changed' : 'Could not load the dashboard.'} onRetry={retry}>
+  if (!current) return <><PageHeader title={patientId ? 'Patient dashboard' : 'Your day'} /><Skeleton height="var(--dashboard-rail-loading)" label="Loading dashboard" />{['Today’s doses', 'Adherence', 'Refill alerts'].map((title) => <Card key={title} title={title}><Skeleton height="calc(var(--s10) * 2)" label={`Loading ${title.toLowerCase()}`} /></Card>)}</>;
+  if (!data) return <ErrorState headingLevel={1} title={current.accessChanged ? 'Access changed' : 'Could not load the dashboard.'} onRetry={retry}>
     {current.accessChanged ? 'This patient’s information is no longer available to you. Your linked patients have been refreshed. You are still signed in.' : current.error}
   </ErrorState>;
   const zone = patientZone(data.timezone);
@@ -96,7 +96,7 @@ function DashboardData({ patientId }) {
       description={`${formatDate(data.generatedAt, zone, { dateStyle: 'full' })} · ${zone}`}
       action={<Button variant="secondary" onClick={retry}>Refresh</Button>} />
     <div className="dashboard-update" role="status">
-      {current.error ? <span>Could not refresh. Showing the last successful update. {current.error}</span>
+      {current.error ? <span>Could not refresh. Showing the last successful update. {current.error} <Button variant="secondary" size="sm" onClick={retry}>Retry</Button></span>
         : <span>Updated <time dateTime={data.generatedAt}>{time(data.generatedAt)}</time> · Refreshes every 30 seconds</span>}
     </div>
     {data.readOnly && <div className="dashboard-access"><Banner>Read-only view of {data.patient.fullName}’s dashboard.</Banner><StatusPill status={data.permissionLevel} /></div>}

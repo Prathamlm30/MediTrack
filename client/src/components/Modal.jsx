@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import Button from './Button.jsx';
 import s from './Modal.module.css';
+let openDialogs = 0;
+let originalOverflow;
 export default function Modal({ open, onClose, title, children, description, className = '' }) {
   const dialog = useRef(null);
   const closeRef = useRef(onClose);
@@ -13,9 +15,13 @@ export default function Modal({ open, onClose, title, children, description, cla
     const trigger = document.activeElement;
     const element = dialog.current;
     element.showModal();
-    const oldOverflow = document.body.style.overflow;
+    if (openDialogs++ === 0) originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { element.close(); document.body.style.overflow = oldOverflow; if (trigger?.isConnected) trigger.focus(); };
+    return () => {
+      element.close();
+      if (--openDialogs === 0) document.body.style.overflow = originalOverflow;
+      if (trigger?.isConnected) trigger.focus();
+    };
   }, [open]);
   if (!open) return null;
   return createPortal(<dialog ref={dialog} className={`${s.modal} ${className}`} aria-labelledby={`${id}-title`}

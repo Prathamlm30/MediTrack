@@ -1,6 +1,5 @@
 import './styles/tokens.css';
-import '@fontsource-variable/public-sans';
-import '@fontsource-variable/newsreader';
+import './styles/fonts.css';
 import './styles/base.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

@@ -33,7 +33,7 @@ test('timezone, decimal strings, adherence period, refill local days and DST', a
   expect(dayNumber('2026-03-09T07:00:00Z', 'America/Los_Angeles') - dayNumber('2026-03-08T08:00:00Z', 'America/Los_Angeles')).toBe(1);
   expect(dayNumber('2026-11-02T08:00:00Z', 'America/Los_Angeles') - dayNumber('2026-11-01T07:00:00Z', 'America/Los_Angeles')).toBe(1);
 });
-for (const width of [360, 640, 1280]) test(`rail geometry, keyboard and accessibility at ${width}px`, async ({ page }) => {
+for (const width of [360, 768, 1280]) test(`rail geometry, keyboard and accessibility at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 }); await fixture(page); await page.goto('/patients/2'); await expect(markers(page)).toHaveCount(7);
   await page.evaluate(() => document.fonts.ready);
   await page.getByRole('figure').evaluate(async (el) => { await Promise.all(el.getAnimations({ subtree: true }).map((animation) => animation.finished)); });

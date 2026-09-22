@@ -29,7 +29,7 @@ const verifications = new Map();
 export function verifyOnce(token) {
   if (!verifications.has(token)) {
     const result = verifyEmail(token).catch((error) => {
-      if (!error.status || error.status >= 500) verifications.delete(token);
+      verifications.delete(token);
       throw error;
     });
     verifications.set(token, result);

@@ -34,8 +34,9 @@ function ManagePermissions({ link, onClose, onSaved, initialRevoke = false }) {
   const [level, setLevel] = useState(link.permissionLevel);
   const [confirm, setConfirm] = useState(initialRevoke);
   const [busy, setBusy] = useState(false); const inFlight = useRef(false);
-  const [error, setError] = useState(''); const notify = useToast();
+  const [error, setError] = useState(''); const lastRevoke = useRef(false); const notify = useToast();
   async function save(revoking = false) {
+    lastRevoke.current = revoking;
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setError('');
     try {
@@ -57,7 +58,7 @@ function ManagePermissions({ link, onClose, onSaved, initialRevoke = false }) {
           </label>)}
         </fieldset>
         {link.status !== 'active' && <Banner>This relationship is {link.status}. Changing its permissions does not restore access.</Banner>}
-        {error && <Banner tone="danger">{error}</Banner>}
+        {error && <ErrorState title="Could not update permissions" onRetry={() => lastRevoke.current ? setConfirm(true) : save()}>{error}</ErrorState>}
         <div className={s.actions}><Button type="submit" loading={busy} disabled={level === link.permissionLevel}>Save permissions</Button><Button variant="secondary" disabled={busy} onClick={onClose}>Cancel</Button></div>
         {link.status !== 'revoked' && <div className={s.destructive}><Button variant="danger" disabled={busy} onClick={() => setConfirm(true)}>Revoke access</Button></div>}
       </form>
@@ -78,7 +79,7 @@ export function RelationshipsPage() {
   const invite = <Button onClick={() => navigate('/relationships/invite')}>Invite someone</Button>;
   return <div className={s.stack}><PageHeader title="My relationships" description="The people you share care with, in both directions." action={rows?.length ? invite : undefined} />
     {error ? <ErrorState title="Could not load relationships" onRetry={() => load()}>{error}</ErrorState>
-      : !rows ? <Skeleton height="calc(var(--s10) * 4)" label="Loading relationships" />
+      : !rows ? <div role="status" aria-label="Loading relationships" className={s.stack}>{["People who care for me", "People I care for"].map((title) => <Card key={title} title={title}><Skeleton height="calc(var(--s10) * 3)" label={`Loading ${title.toLowerCase()}`} /></Card>)}</div>
         : !rows.length ? <EmptyState title="No one is linked to your account yet." action={invite}>An invitation is how a link starts. Invite someone to care for you, or someone you care for.</EmptyState>
           : ['patient', 'caregiver'].map((perspective) => <Card key={perspective} title={perspective === 'patient' ? 'People who care for me' : 'People I care for'}>
             {rows.some((link) => link.perspective === perspective) ? <ul className={s.list}>
@@ -111,7 +112,7 @@ export function InvitePage() {
   const change = (key, value) => { setValues((previous) => ({ ...previous, [key]: value })); setErrors({}); };
   async function submit(event) {
     event.preventDefault(); if (inFlight.current) return;
-    if (!values.relationshipType.trim()) { setErrors({ relationshipType: 'Invalid relationshipType.' }); return; }
+    if (!values.relationshipType.trim()) { setErrors({ relationshipType: 'Enter your relationship type.' }); return; }
     inFlight.current = true; setBusy(true); setErrors({});
     try {
       const data = await invitations.invite({ inviteeEmail: values.inviteeEmail.trim(), relationshipType: values.relationshipType.trim(), proposedRole: values.proposedRole });
@@ -132,7 +133,7 @@ export function InvitePage() {
         </label>)}
       </fieldset>
       <Banner>New relationships start with view-only access. The patient can change permissions at any time.</Banner>
-      {errors.form && <Banner tone="danger">{errors.form}</Banner>}
+      {errors.form && <><Banner tone="danger">{errors.form}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}
       <div className={s.actions}><Button type="submit" loading={busy}>Send invitation</Button><Link to="/relationships">Cancel</Link></div>
     </form></div>;
 }
@@ -147,6 +148,7 @@ function Invitation({ token }) {
   const { refreshPatients } = useActivePatient(); const navigate = useNavigate(); const notify = useToast();
   const [state, setState] = useState(null); const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState(false); const inFlight = useRef(false); const [error, setError] = useState(null);
+  const lastAction = useRef(null);
   const [result, setResult] = useState(null); const [refreshError, setRefreshError] = useState('');
   useEffect(() => {
     const controller = new AbortController(); setState(null);
@@ -159,26 +161,28 @@ function Invitation({ token }) {
   }
   async function answer(accepted) {
     if (inFlight.current) return;
+    lastAction.current = () => answer(accepted);
     inFlight.current = true; setBusy(true); setError(null);
     try {
       const data = await (accepted ? invitations.accept(token) : invitations.decline(token));
       setResult({ accepted, data });
-      if (accepted) { const link = data.relationship; const other = link.perspective === 'patient' ? link.caregiver : link.patient; notify(`You are now linked with ${other.fullName}. View-only access is active.`, 'success'); }
+      if (accepted) { const link = data.relationship; const other = link.perspective === 'patient' ? link.caregiver : link.patient; notify(`Invitation accepted. You are now linked with ${other.fullName}. View-only access is active.`, 'success'); }
       await refresh(accepted);
     } catch (err) { setError(err); }
     finally { inFlight.current = false; setBusy(false); }
   }
   async function switchAccount() {
     if (inFlight.current) return;
+    lastAction.current = switchAccount;
     inFlight.current = true; setBusy(true);
     try { await signOut(); navigate(authPath('/login', token), { replace: true }); }
     catch (err) { setError(err); }
     finally { inFlight.current = false; setBusy(false); }
   }
-  if (!state) return <Skeleton height="calc(var(--s10) * 4)" label="Loading invitation" />;
+  if (!state) return <div className={s.stack}><PageHeader title="Invitation" /><Skeleton height="calc(var(--s10) * 4)" label="Loading invitation" /></div>;
   const failure = state.error || error;
-  if (terminalTitles[failure?.status]) return <div className={s.stack}><PageHeader title={terminalTitles[failure.status]} /><Banner tone="warning">{failure.message}</Banner><p>{terminalHelp[failure.status]}</p><Link to={session ? '/relationships' : '/login'}>{session ? 'View relationships' : 'Log in'}</Link></div>;
-  if (state.error) return <ErrorState title="Could not load invitation" onRetry={() => setAttempt((n) => n + 1)}>{state.error.message}</ErrorState>;
+  if (terminalTitles[failure?.status]) return <div className={s.stack}><PageHeader title={terminalTitles[failure.status]} /><Banner tone="warning">{failure.message}</Banner><p>{terminalHelp[failure.status]}</p><Button variant="secondary" loading={busy} onClick={() => state.error ? setAttempt((n) => n + 1) : lastAction.current()}>Retry</Button><Link to={session ? '/relationships' : '/login'}>{session ? 'View relationships' : 'Log in'}</Link></div>;
+  if (state.error) return <ErrorState headingLevel={1} title="Could not load invitation" onRetry={() => setAttempt((n) => n + 1)}>{state.error.message}</ErrorState>;
   if (result) return <div className={s.stack}><PageHeader title={result.accepted ? 'Invitation accepted' : 'Invitation declined'} /><Banner>{result.accepted ? 'Your relationship is active with view-only access.' : result.data.message}</Banner><RefreshNotice error={refreshError} onRetry={() => refresh(result.accepted)} /><Link to="/relationships">View relationships</Link></div>;
   const invitation = state.invitation;
   // Public preview intentionally omits inviteeEmail. Only an authorized answer can
@@ -193,9 +197,9 @@ function Invitation({ token }) {
       <div className={s.actions}><form method="post" action={invitations.publicAcceptAction(token)}><Button type="submit">Sign in to accept</Button></form><Button variant="secondary" onClick={() => navigate(authPath('/signup', token))}>Create an account</Button></div>
     </> : <>
       <p className={s.email}>Signed in as {session.user.email}.</p>
-      {wrongAccount ? <><Banner tone="warning">{error.message} This invitation requires the invited email address; this account could not answer it.</Banner><Button variant="secondary" loading={busy} onClick={switchAccount}>Sign out and switch account</Button></> : <>
+      {wrongAccount ? <><Banner tone="warning">{error.message} This invitation requires the invited email address; this account could not answer it.</Banner><Button variant="secondary" loading={busy} onClick={() => lastAction.current()}>Retry</Button><Button variant="secondary" loading={busy} onClick={switchAccount}>Sign out and switch account</Button></> : <>
         <p>Accept or decline only if this is the email that received the invitation.</p>
-        {error && <Banner tone="danger">{error.message}</Banner>}
+        {error && <ErrorState title="Could not answer invitation" loading={busy} onRetry={() => lastAction.current()}>{error.message}</ErrorState>}
         <div className={s.actions}><Button loading={busy} onClick={() => answer(true)}>Accept invitation</Button><Button variant="secondary" disabled={busy} onClick={() => answer(false)}>Decline invitation</Button></div>
         <Button variant="ghost" disabled={busy} onClick={switchAccount}>Sign out and switch account</Button>
       </>}

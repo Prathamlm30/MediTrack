@@ -1,4 +1,4 @@
-.button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); border: 1px solid transparent; border-radius: var(--r-control); font-weight: 600; line-height: var(--lh-heading); transition: background var(--dur-fast) var(--ease); }
+.button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); border: 1px solid transparent; border-radius: var(--r-control); font-weight: 600; line-height: var(--lh-heading); transition: transform var(--dur-fast) var(--ease); max-width: 100%; }
 .sm { padding: var(--s2) var(--s3); font-size: var(--t-small); }
 .md { padding: var(--s3) var(--s4); font-size: var(--t-body); }
 .primary { background: var(--brand); color: var(--brand-ink); }
@@ -12,5 +12,5 @@
 .button:focus-visible { box-shadow: var(--focus-ring); }
 .button:disabled { background: var(--paper-sunk); color: var(--ink-2); border-color: var(--line); }
 .hidden { opacity: 0; }
-.spinner { position: absolute; width: var(--s4); height: var(--s4); border: 2px solid currentColor; border-right-color: transparent; border-radius: var(--r-pill); animation: turn 1s linear infinite; }
+.spinner { position: absolute; width: var(--s4); height: var(--s4); border: 2px solid currentColor; border-right-color: transparent; border-radius: var(--r-pill);  }
 @keyframes turn { to { transform: rotate(360deg); } }

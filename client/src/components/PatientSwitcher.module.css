@@ -1,4 +1,4 @@
-.switcher { position: relative; }
+.switcher { position: relative; min-width: 0; max-width: 100%; }
 .menu { position: absolute; z-index: 5; top: calc(100% + var(--s2)); left: 0; width: max-content; min-width: 100%; max-width: calc(100vw - var(--s7)); padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r-layer); background: var(--paper); box-shadow: var(--shadow-layer); }
 .choices { display: grid; gap: var(--s1); }
 .choices button { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); text-align: left; border: 0; border-radius: var(--r-control); padding: var(--s3); background: var(--paper); color: var(--ink); }

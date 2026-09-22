@@ -29,7 +29,7 @@ function InvitationNotice({ token }) {
   if (!state) return <Skeleton label="Loading invitation" />;
   if (state.error) {
     const message = { 404: 'This invitation could not be found. Ask the sender for the original link.', 410: 'This invitation has expired. Ask the sender for a new invitation.', 409: 'This invitation has already been answered.' }[state.error.status];
-    return message ? <Banner tone="warning">{message} You can still create an account or sign in.</Banner> : <ErrorState onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
+    return message ? <Banner tone="warning">{message} You can still create an account or sign in. <Button variant="secondary" onClick={() => setAttempt(attempt + 1)}>Retry</Button></Banner> : <ErrorState onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
   }
   return <Banner>{state.data.invitation.inviter.fullName} invited you to connect on MediTrack. Sign in with the email that received the invitation.</Banner>;
 }
@@ -45,8 +45,9 @@ function GoogleSignIn({ onSuccess, onError, focusRef, busy }) {
 }
 
 export function Landing() {
-  const { checking, session } = useAuth(); const navigate = useNavigate();
-  if (checking) return <Skeleton label="Checking your session" />;
+  const { checking, session, error, retrySession } = useAuth(); const navigate = useNavigate();
+  if (checking) return <div className={s.stack}><PageHeader title="MediTrack" /><Skeleton height="calc(var(--s10) * 4)" label="Checking your session" /></div>;
+  if (error) return <ErrorState headingLevel={1} onRetry={retrySession}>{error}</ErrorState>;
   if (session) return <Navigate to="/dashboard" replace />;
   return <div className={s.stack}><h1 className={s.headline}>Keep track of your medicines and the people you care for.</h1>
     <p>See your day’s medication schedule and share it with the people you trust, all from one account.</p>
@@ -118,7 +119,8 @@ export function SignInPage({ signup = false }) {
           onChange={(event) => { change('password')(event); setPasswordTouched(true); }} aria-describedby={errors.credentials ? 'credentials-error' : undefined} aria-invalid={errors.credentials ? true : undefined} /></Field>
       {errors.credentials && <p id="credentials-error" className={s.error} role="alert">{errors.credentials}</p>}
       {!signup && <Link to={authPath('/forgot-password', inviteToken)}>Forgot password?</Link>}
-      {errors.form && <Banner tone="danger">{errors.form}</Banner>}
+      {errors.form && <><Banner tone="danger">{errors.form}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}
+      {(errors.credentials || errors.email) && <Button type="submit" variant="secondary" disabled={busy}>Retry</Button>}
       <Button type="submit" loading={busy}>{signup ? 'Create account' : 'Log in'}</Button>
     </form>
     <p>{signup ? 'Already have an account? ' : 'New to MediTrack? '}<Link to={authPath(signup ? '/login' : '/signup', inviteToken)}>{signup ? 'Log in' : 'Sign up'}</Link></p>
@@ -136,7 +138,7 @@ export function ForgotPassword() {
   return <div className={s.stack}><PageHeader title={done ? 'Check for a reset link' : 'Forgot password'} />
     {done ? <><p>If that email has a MediTrack account with a password, a reset link is on its way.</p><p className={s.muted}>Reset links expire after 15 minutes. If you use Google, continue with Google on the login page.</p></>
       : <form className={s.form} onSubmit={submit}><Field label="Email" required><TextInput type="email" maxLength={254} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} /></Field>
-        {error && <Banner tone="danger">{error}</Banner>}<Button type="submit" loading={busy}>Send reset link</Button></form>}
+        {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}<Button type="submit" loading={busy}>Send reset link</Button></form>}
     <Link to={authPath('/login', inviteToken)}>Back to log in</Link></div>;
 }
 
@@ -153,11 +155,11 @@ export function ResetPassword() {
     catch (err) { if (err.status === 400 && /token/i.test(err.message)) setInvalid(true); else setError(err.message); }
     finally { setBusy(false); }
   }
-  if (invalid) return <div className={s.stack}><PageHeader title="This reset link cannot be used" /><Banner tone="warning">The link is invalid, has already been used, or expired after 15 minutes.</Banner><Link to={authPath('/forgot-password', inviteToken)}>Request a new reset link</Link></div>;
+  if (invalid) return <div className={s.stack}><PageHeader title="This reset link cannot be used" /><Banner tone="warning">The link is invalid, has already been used, or expired after 15 minutes.</Banner><Link to={authPath('/forgot-password', inviteToken)}>Request a new reset link</Link>{password && <Button variant="secondary" loading={busy} onClick={submit}>Retry</Button>}</div>;
   return <div className={s.stack}><PageHeader title="Reset password" /><form className={s.form} onSubmit={submit}>
     <Field label="New password" required help={passwordHelp} error={touched ? passwordError(password) : undefined}><PasswordInput autoComplete="new-password" value={password} onChange={(e) => { setPassword(e.target.value); setTouched(true); }} disabled={busy} /></Field>
     <Field label="Confirm new password" required error={(confirmation || touched) && confirmation !== password ? 'Passwords do not match.' : undefined}><PasswordInput autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} disabled={busy} /></Field>
-    {error && <Banner tone="danger">{error}</Banner>}<Button type="submit" loading={busy}>Reset password</Button></form></div>;
+    {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}<Button type="submit" loading={busy}>Reset password</Button></form></div>;
 }
 
 export function VerifyEmail() {
@@ -171,9 +173,10 @@ export function VerifyEmail() {
   }, [token, attempt]);
   if (!state) return <div className={s.stack}><PageHeader title="Verifying your email" /><Skeleton height="calc(var(--s10) * 2)" label="Verifying your email" /></div>;
   if (state.verified) return <div className={s.stack}><PageHeader title="Email verified" /><p>Your email is verified. You can now sign in{inviteToken ? ' to continue to your invitation' : ''}.</p><Button onClick={() => navigate(authPath('/login', inviteToken))}>Continue to sign in</Button></div>;
-  if (!state.error.status || state.error.status >= 500) return <ErrorState title="Could not verify your email" onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
+  if (!state.error.status || state.error.status >= 500) return <ErrorState headingLevel={1} title="Could not verify your email" onRetry={() => setAttempt(attempt + 1)}>{state.error.message}</ErrorState>;
   return <div className={s.stack}><PageHeader title="This verification link cannot be used" />
     <Banner tone="warning">{state.error.status === 400 ? 'The link is invalid, has already been used, or expired after 24 hours.' : state.error.message}</Banner>
+    <Button variant="secondary" onClick={() => setAttempt(attempt + 1)}>Retry</Button>
     <p>If you already verified your email, continue to sign in. Otherwise, check the original email link. For an expired link, contact the project administrator; a resend option is not available yet.</p>
     <Button onClick={() => navigate(authPath('/login', inviteToken))}>Continue to sign in</Button></div>;
 }

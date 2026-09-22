@@ -23,7 +23,7 @@
 .endTooltip { left: auto; right: 0; }
 .marker:hover .tooltip, .marker:focus .tooltip { display: block; }
 .now { position: absolute; left: var(--position); top: calc(-1 * var(--s5)); height: calc(var(--s8) + var(--lanes) * var(--s10)); border-left: 1px solid var(--ink); pointer-events: none; }
-.now > span { position: absolute; bottom: 100%; transform: translateX(-50%); font-size: var(--t-caption); }
+.now > span { white-space: nowrap; position: absolute; bottom: 100%; transform: translateX(-50%); font-size: var(--t-caption); }
 .figure figcaption { font-size: var(--t-small); color: var(--ink-2); }
 @media (max-width: 639px) {
   .figure { padding: var(--s4); }
