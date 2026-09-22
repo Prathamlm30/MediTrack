@@ -67,7 +67,8 @@ test('session check does not flash login; dashboard refresh and saved theme work
 });
 test('public route contract and protected redirect', async ({ page }) => {
   await page.route('**/api/auth/verify-email/sample', (route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Invalid or expired token.' }) }));
-  for (const [path, title] of [['/signup?inviteToken=sample', 'Create your account'], ['/reset-password?token=sample', 'This reset link cannot be used'], ['/verify-email/sample', 'This verification link cannot be used'], ['/invitations/sample', 'Invitation']]) {
+  await page.route('**/api/invitations/sample', (route) => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Invitation not found.' }) }));
+  for (const [path, title] of [['/signup?inviteToken=sample', 'Create your account'], ['/reset-password?token=sample', 'This reset link cannot be used'], ['/verify-email/sample', 'This verification link cannot be used'], ['/invitations/sample', 'Invitation not found']]) {
     await page.goto(path); await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
   }
   await page.goto('/profile'); await expect(page).toHaveURL(/\/login$/);

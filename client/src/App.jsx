@@ -11,6 +11,7 @@ import AuthShell from './components/layout/AuthShell.jsx';
 import Skeleton from './components/Skeleton.jsx';
 import { Landing, SignInPage, ForgotPassword, ResetPassword, VerifyEmail } from './pages/account/AuthPages.jsx';
 import { AccountPage } from './pages/account/ProfilePages.jsx';
+import { RelationshipsPage, InvitePage, InvitationPage } from './pages/relationships/RelationshipPages.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
@@ -22,14 +23,14 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
-      <Route path="/invitations/:token" element={<Placeholder title="Invitation" invitation />} />
+      <Route path="/invitations/:token" element={<InvitationPage />} />
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/patients" element={<Placeholder title="Patients" />} />
       <Route path="/patients/:patientId" element={<Dashboard />} />
-      <Route path="/relationships" element={<Placeholder title="Relationships" />} />
-      <Route path="/relationships/invite" element={<Placeholder title="Invite someone" />} />
+      <Route path="/relationships" element={<RelationshipsPage />} />
+      <Route path="/relationships/invite" element={<InvitePage />} />
       <Route path="/profile" element={<AccountPage page="profile" />} />
       <Route path="/profile/edit" element={<AccountPage page="edit" />} />
       <Route path="/settings" element={<AccountPage page="settings" />} />

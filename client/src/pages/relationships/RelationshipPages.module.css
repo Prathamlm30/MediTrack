@@ -1,0 +1,20 @@
+.stack, .form { display: grid; gap: var(--s6); }
+.form { max-width: var(--measure); }
+.actions, .pills, .identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s3); }
+.list { list-style: none; padding: 0; margin: 0; }
+.row { display: grid; gap: var(--s4); padding-block: var(--s5); }
+.row + .row { border-top: 1px solid var(--line); }
+.identity > div { min-width: 0; flex: 1; }
+.email, .muted { color: var(--ink-2); overflow-wrap: anywhere; }
+.details { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s6); margin: 0; }
+.details > div { min-width: 0; }
+.details dt { color: var(--ink-2); font-size: var(--t-small); }
+.details dd { margin: 0; overflow-wrap: anywhere; }
+.choices { display: grid; gap: var(--s3); border: 0; padding: 0; margin: 0; min-width: 0; }
+.choices legend { font-weight: 600; margin-bottom: var(--s3); }
+.choice { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s4); border: 1px solid var(--line-strong); border-radius: var(--r-control); cursor: pointer; }
+.choice input { flex-shrink: 0; margin-top: var(--s1); }
+.choice strong, .choice span span { display: block; }
+.choice span span { color: var(--ink-2); margin-top: var(--s1); }
+.destructive { padding-top: var(--s5); border-top: 1px solid var(--line); }
+.suggestions { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
