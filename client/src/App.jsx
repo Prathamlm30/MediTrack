@@ -9,17 +9,19 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppShell from './components/layout/AppShell.jsx';
 import AuthShell from './components/layout/AuthShell.jsx';
 import Skeleton from './components/Skeleton.jsx';
+import { Landing, SignInPage, ForgotPassword, ResetPassword, VerifyEmail } from './pages/account/AuthPages.jsx';
+import { AccountPage } from './pages/account/ProfilePages.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
   return <AuthProvider><ActivePatientProvider><ToastProvider><Routes>
     <Route element={<AuthShell />}>
-      <Route path="/" element={<Placeholder title="MediTrack" landing />} />
-      <Route path="/login" element={<Placeholder title="Log in" login />} />
-      <Route path="/signup" element={<Placeholder title="Sign up" signup />} />
-      <Route path="/forgot-password" element={<Placeholder title="Forgot password" />} />
-      <Route path="/reset-password" element={<Placeholder title="Reset password" reset />} />
-      <Route path="/verify-email/:token" element={<Placeholder title="Verify email" verification />} />
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<SignInPage key="login" />} />
+      <Route path="/signup" element={<SignInPage key="signup" signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route path="/invitations/:token" element={<Placeholder title="Invitation" invitation />} />
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
@@ -28,10 +30,10 @@ export default function App() {
       <Route path="/patients/:patientId" element={<Dashboard />} />
       <Route path="/relationships" element={<Placeholder title="Relationships" />} />
       <Route path="/relationships/invite" element={<Placeholder title="Invite someone" />} />
-      <Route path="/profile" element={<Placeholder title="Profile" />} />
-      <Route path="/profile/edit" element={<Placeholder title="Edit profile" />} />
-      <Route path="/settings" element={<Placeholder title="Account settings" />} />
-      <Route path="/settings/notifications" element={<Placeholder title="Notification preferences" />} />
+      <Route path="/profile" element={<AccountPage page="profile" />} />
+      <Route path="/profile/edit" element={<AccountPage page="edit" />} />
+      <Route path="/settings" element={<AccountPage page="settings" />} />
+      <Route path="/settings/notifications" element={<AccountPage page="preferences" />} />
       <Route path="/dashboard/my-patients" element={<Navigate to="/patients" replace />} />
       <Route path="/dashboard/caregiver" element={<Dashboard />} />
     </Route></Route>

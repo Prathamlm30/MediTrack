@@ -1,0 +1,74 @@
+import { test, expect } from '@playwright/test';
+
+// Opt in: this creates one account and sends verification/reset emails to local Mailpit.
+test('real backend: Mailpit verification, login, profile, preferences and password reset', async ({ page, context, request }) => {
+  test.skip(!process.env.MAILPIT_URL, 'Set MAILPIT_URL to run the real email flow.');
+  test.setTimeout(90000);
+  const email = `ui2-${Date.now()}@example.test`;
+  const password = 'MediTrack-test-42!';
+  const origin = 'http://localhost:5173';
+  const mailpit = process.env.MAILPIT_URL.replace(/\/$/, '');
+  async function emailLink(subject, pattern) {
+    let message;
+    await expect.poll(async () => {
+      const response = await request.get(`${mailpit}/api/v1/search`, { params: { query: `to:${email}` } });
+      const data = await response.json();
+      message = data.messages?.find((entry) => entry.Subject === subject);
+      return Boolean(message);
+    }).toBe(true);
+    const response = await request.get(`${mailpit}/api/v1/message/${message.ID}`);
+    const data = await response.json();
+    const link = data.Text.match(pattern)?.[0];
+    expect(Boolean(link)).toBe(true);
+    return link;
+  }
+  await page.goto(`${origin}/signup`);
+  await page.getByLabel('Full name', { exact: false }).fill('UI2 Mailpit Test');
+  await page.getByLabel('Email', { exact: false }).fill(email);
+  await page.getByLabel(/^Password/).fill(password);
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
+  const link = await emailLink('Verify your MediTrack email', /http[^\s]+\/verify-email\/[a-f0-9]{64}/);
+  const emailTab = await context.newPage(); let count = 0;
+  emailTab.on('request', (r) => { if (new URL(r.url()).pathname.startsWith('/api/auth/verify-email/')) count++; });
+  await emailTab.goto(link);
+  await expect(emailTab.getByRole('heading', { name: 'Email verified', exact: true })).toBeVisible();
+  expect(count).toBe(1);
+  await emailTab.getByRole('button', { name: 'Continue to sign in' }).click();
+  await emailTab.getByLabel('Email', { exact: false }).fill(email);
+  await emailTab.getByLabel(/^Password/).fill(password);
+  await emailTab.getByRole('button', { name: 'Log in', exact: true }).click();
+  await expect(emailTab).toHaveURL(/\/dashboard$/);
+  await emailTab.goto(`${origin}/profile/edit`);
+  await emailTab.getByLabel('Full name', { exact: false }).fill('UI2 Verified Test');
+  await emailTab.getByRole('button', { name: 'Save changes' }).click();
+  await expect(emailTab.getByText('Profile updated.', { exact: true })).toBeVisible();
+  await emailTab.goto(`${origin}/settings/notifications`);
+  await emailTab.getByLabel('Theme', { exact: true }).selectOption('dark');
+  await expect(emailTab.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await emailTab.getByLabel('Timezone', { exact: true }).selectOption('America/New_York');
+  await emailTab.getByRole('button', { name: 'Save preferences' }).click();
+  await expect(emailTab.getByRole('button', { name: 'Save preferences' })).toBeDisabled();
+  await emailTab.reload();
+  await expect(emailTab.getByLabel('Timezone', { exact: true })).toHaveValue('America/New_York');
+  await expect(emailTab.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await emailTab.goto(`${origin}/forgot-password`);
+  await emailTab.getByLabel('Email', { exact: false }).fill(email);
+  await emailTab.getByRole('button', { name: 'Send reset link' }).click();
+  await expect(emailTab.getByRole('heading', { name: 'Check for a reset link' })).toBeVisible();
+  const reset = await emailLink('Reset your MediTrack password', /http[^\s]+\/reset-password\?token=[a-f0-9]{64}/);
+  await emailTab.goto(reset);
+  await emailTab.getByLabel(/^New password/).fill(`${password}new`);
+  await emailTab.getByLabel(/^Confirm new password/).fill(`${password}new`);
+  await emailTab.getByRole('button', { name: 'Reset password', exact: true }).click();
+  await expect(emailTab).toHaveURL(/\/login$/);
+  await expect(emailTab.getByText(/Any existing session was signed out/)).toBeVisible();
+  expect(await emailTab.evaluate(() => sessionStorage.getItem('meditrack.refresh'))).toBeNull();
+  await emailTab.goto(reset);
+  await emailTab.getByLabel(/^New password/).fill(`${password}again`);
+  await emailTab.getByLabel(/^Confirm new password/).fill(`${password}again`);
+  await emailTab.getByRole('button', { name: 'Reset password', exact: true }).click();
+  await expect(emailTab.getByRole('heading', { name: 'This reset link cannot be used' })).toBeVisible();
+  await emailTab.goto(link);
+  await expect(emailTab.getByRole('heading', { name: 'This verification link cannot be used' })).toBeVisible();
+});
