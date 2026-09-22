@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
+import PageHeader from '../../components/PageHeader.jsx';
+import Card from '../../components/Card.jsx';
+import Avatar from '../../components/Avatar.jsx';
+import EmptyState from '../../components/EmptyState.jsx';
+import ErrorState from '../../components/ErrorState.jsx';
+import StatusPill from '../../components/StatusPill.jsx';
+import DayRail from '../../components/DayRail.jsx';
+import { dayMinute, dayNumber, dosePeriod, formatDate, patientZone, quantity } from '../../components/dayTime.js';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useActivePatient } from '../../context/ActivePatientContext.jsx';
 import './dashboard.css';
@@ -40,22 +48,30 @@ export function DashboardLogin({ onSuccess }) {
     {error && <p role="alert">{error}</p>}</section>;
 }
 
-function DashboardData({ patientId, permissionLevel }) {
+function DashboardData({ patientId }) {
   const { request, session } = useAuth();
   const [state, setState] = useState(null);
   const [revision, setRevision] = useState(0);
-  const key = `${session.user.id}:${patientId || "self"}:${permissionLevel}`;
+  const hasPainted = useRef(false);
+  // Permission is response data, never part of the loading identity.
+  const key = `${session.user.id}:${patientId || 'self'}`;
   const { refreshPatients } = useActivePatient();
   useEffect(() => {
     let disposed = false;
     let controller;
     async function load() {
-      controller?.abort(); controller = new AbortController();
+      controller?.abort();
+      const pending = new AbortController(); controller = pending;
       try {
-        const data = await (patientId ? getCaregiverDashboard(patientId, { signal: controller.signal }) : getPatientDashboard({ signal: controller.signal }));
-        if (!disposed) setState({ key, data });
+        const data = await (patientId ? getCaregiverDashboard(patientId, { signal: pending.signal }) : getPatientDashboard({ signal: pending.signal }));
+        if (!disposed && !pending.signal.aborted) setState({ key, data });
       } catch (error) {
-        if (!disposed && error.name !== 'AbortError') { setState({ key, error: error.status === 403 ? 'Access changed. This patient’s information is no longer available.' : error.message }); if (error.status === 403) refreshPatients(); }
+        if (disposed || pending.signal.aborted || error.name === 'AbortError') return;
+        const accessChanged = error.status === 403;
+        // Keep the layout on transient failures, but immediately remove data on a denial.
+        setState((previous) => ({ key, data: !accessChanged && previous?.key === key ? previous.data : undefined,
+          error: error.message, accessChanged }));
+        if (accessChanged) refreshPatients();
       }
     }
     void load();
@@ -65,59 +81,93 @@ function DashboardData({ patientId, permissionLevel }) {
   }, [key, patientId, request, revision, refreshPatients]);
   const current = state?.key === key ? state : null;
   const data = current?.data;
-  if (!current) return <Skeleton height="calc(var(--s10) * 5)" label="Loading dashboard" />;
-  if (current.error) return <div><p role="alert">{current.error}</p>
-    <button onClick={() => setRevision((value) => value + 1)}>Retry</button></div>;
-  const date = (value) => new Intl.DateTimeFormat(undefined, { timeZone: data.timezone, dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  useEffect(() => { if (data) hasPainted.current = true; }, [data]);
+  const retry = () => setRevision((value) => value + 1);
+  if (!current) return <Skeleton height="calc(var(--s10) * 8)" label="Loading dashboard" />;
+  if (!data) return <ErrorState title={current.accessChanged ? 'Access changed' : 'Could not load the dashboard.'} onRetry={retry}>
+    {current.accessChanged ? 'This patient’s information is no longer available to you. Your linked patients have been refreshed. You are still signed in.' : current.error}
+  </ErrorState>;
+  const zone = patientZone(data.timezone);
+  const date = (value) => formatDate(value, zone, { dateStyle: 'medium' });
+  const time = (value) => formatDate(value, zone, { hour: 'numeric', minute: '2-digit' });
+  const hasDoses = Object.hasOwn(data, 'todayDoses');
   return <>
-    <div className="dashboard-heading"><div><h2>{data.patient.fullName}</h2>
-      <p>{data.readOnly ? 'Caregiver view · Read-only' : 'Your daily overview'} · {data.timezone}</p></div>
-      <button onClick={() => setRevision((value) => value + 1)}>Refresh</button></div>
-    <p className="dashboard-muted">Updated {date(data.generatedAt)} · Refreshes every 30 seconds</p>
-    {!Object.hasOwn(data, 'todayDoses') && <Banner>You have alerts-only access. {data.patient.fullName} has not shared their dose schedule or adherence with you. They can change this from their relationships page.</Banner>}
-    {Object.hasOwn(data, 'todayDoses') && <section><h3>Today’s doses</h3>
-      {data.todayDoses.length ? <ul className="dashboard-list">{data.todayDoses.map((dose) => <li key={dose.id}>
-        <strong>{dose.schedule.medication.medicineName}</strong><span>{dose.schedule.doseAmount} {dose.schedule.medication.dosageUnit} · {date(dose.scheduledDatetime)}</span>
-        <span>{dose.status}</span></li>)}</ul> : <p>No doses scheduled today.</p>}</section>}
-    {Object.hasOwn(data, 'adherence') && <section><h3>Latest daily adherence</h3>{data.adherence ? <>
-      <p><strong>{data.adherence.adherencePercentage}%</strong> · {data.adherence.takenCount} taken / {data.adherence.totalScheduledDoses} scheduled</p>
-      <p>{data.adherence.missedCount} missed · {data.adherence.skippedCount} skipped</p>
-      <p className="dashboard-muted">{date(data.adherence.periodStartDate)} – {date(data.adherence.periodEndDate)}</p>
-    </> : <p>No daily adherence summary yet.</p>}</section>}
-    <section><h3>Refills in the next seven days</h3>{data.refillAlerts.length ? <ul className="dashboard-list">
-      {data.refillAlerts.map((row) => <li key={row.id}><strong>{row.medication.medicineName}</strong>
-        <span>{row.quantityRemaining} {row.quantityUnit} remaining</span><span>Estimated runout: {date(row.estimatedRunoutDate)}</span></li>)}
-    </ul> : <p>No upcoming refills.</p>}</section>
+    <PageHeader title={data.readOnly ? `${data.patient.fullName}’s day` : 'Your day'}
+      description={`${formatDate(data.generatedAt, zone, { dateStyle: 'full' })} · ${zone}`}
+      action={<Button variant="secondary" onClick={retry}>Refresh</Button>} />
+    <div className="dashboard-update" role="status">
+      {current.error ? <span>Could not refresh. Showing the last successful update. {current.error}</span>
+        : <span>Updated <time dateTime={data.generatedAt}>{time(data.generatedAt)}</time> · Refreshes every 30 seconds</span>}
+    </div>
+    {data.readOnly && <div className="dashboard-access"><Banner>Read-only view of {data.patient.fullName}’s dashboard.</Banner><StatusPill status={data.permissionLevel} /></div>}
+    {hasDoses ? <>
+      <DayRail doses={data.todayDoses} timezone={zone} now={data.generatedAt} animate={!hasPainted.current} />
+      <Card title="Today’s doses">
+        {data.todayDoses.length ? <div className="dashboard-dose-groups">{['morning', 'midday', 'evening', 'night'].map((period) => {
+          const doses = data.todayDoses.filter((dose) => dosePeriod(dayMinute(dose.scheduledDatetime, zone)) === period);
+          return doses.length ? <div className={`dashboard-dose-group dashboard-${period}`} key={period}>
+            <h3>{period[0].toUpperCase() + period.slice(1)}</h3>
+            <ul className="dashboard-list">{doses.map((dose) => <li className="dashboard-dose" key={dose.id}>
+              <time dateTime={dose.scheduledDatetime}>{time(dose.scheduledDatetime)}</time>
+              <div><strong>{dose.schedule.medication.medicineName}</strong><p>{quantity(dose.schedule.doseAmount)} {dose.schedule.medication.dosageUnit}</p></div>
+              <StatusPill status={dose.status} />
+            </li>)}</ul>
+          </div> : null;
+        })}</div> : <p>No doses are scheduled for today.</p>}
+      </Card>
+      <Card title="Adherence">{data.adherence ? <div className="dashboard-adherence">
+        <p className="dashboard-percentage">{quantity(data.adherence.adherencePercentage)}<span>%</span></p>
+        <div><p>Daily summary · <time dateTime={data.adherence.periodStartDate}>{date(data.adherence.periodStartDate)}</time> – <time dateTime={data.adherence.periodEndDate}>{date(data.adherence.periodEndDate)}</time></p>
+          <dl className="dashboard-counts">{[['Taken', data.adherence.takenCount], ['Missed', data.adherence.missedCount], ['Skipped', data.adherence.skippedCount], ['Scheduled', data.adherence.totalScheduledDoses]].map(([label, count]) => <div key={label}><dt>{label}</dt><dd>{count}</dd></div>)}</dl>
+        </div>
+      </div> : <p>Adherence appears once doses have been logged.</p>}</Card>
+    </> : <Banner>You have alerts-only access. {data.patient.fullName} has not shared their dose schedule or adherence with you. They can change this from their relationships page.</Banner>}
+    <Card title="Refill alerts">{data.refillAlerts.length ? <ul className="dashboard-list dashboard-refills">
+      {data.refillAlerts.map((row) => {
+        const days = dayNumber(row.estimatedRunoutDate, zone) - dayNumber(data.generatedAt, zone);
+        return <li key={row.id}><strong>{row.medication.medicineName}</strong>
+          <span>{quantity(row.quantityRemaining)} {row.quantityUnit} remaining</span>
+          <span>Estimated runout: <time dateTime={row.estimatedRunoutDate}>{date(row.estimatedRunoutDate)}</time> · {days === 0 ? 'Today' : `In ${days} ${days === 1 ? 'day' : 'days'}`}</span></li>;
+      })}
+    </ul> : <p>Nothing is running low.</p>}</Card>
+  </>;
+}
+
+function PatientOverview() {
+  const { patients, setActivePatientId, loading, error, refreshPatients } = useActivePatient();
+  return <>
+    <PageHeader title="Your patients" description="Choose a person to see what they have shared with you."
+      action={<Button variant="secondary" onClick={refreshPatients}>Refresh patients</Button>} />
+    {loading ? <Skeleton height="calc(var(--s10) * 3)" label="Loading linked patients" />
+      : error ? <ErrorState onRetry={refreshPatients}>{error}</ErrorState>
+        : patients.length ? <ul className="dashboard-patients">{patients.map((row) => <li key={row.patient.id}>
+          <Card><div className="dashboard-patient-name"><Avatar fullName={row.patient.fullName} /><h2>{row.patient.fullName}</h2></div>
+            <StatusPill status={row.permissionLevel} />
+            {row.relationshipType && <p><span className="dashboard-muted">Relationship type: </span>{row.relationshipType}</p>}
+            <Link to={`/patients/${row.patient.id}`} onClick={() => setActivePatientId(row.patient.id)} aria-label={`View dashboard for ${row.patient.fullName}`}>View dashboard</Link>
+          </Card></li>)}</ul>
+          : <EmptyState title="No active linked patients." action={<Link to="/relationships/invite">Invite someone</Link>}>An invitation is how a link starts.</EmptyState>}
   </>;
 }
 
 export default function Dashboard() {
-  const { session, signOut } = useAuth();
+  const { session } = useAuth();
   const { pathname } = useLocation();
   const { patientId } = useParams();
-  const navigate = useNavigate();
-  const [signOutError, setSignOutError] = useState('');
-  const { patients, activePatient, setActivePatientId, loading, error, refreshPatients } = useActivePatient();
-  useEffect(() => { if (patientId) setActivePatientId(patientId); }, [patientId, setActivePatientId]);
+  const { activePatient, setActivePatientId, loading, error, refreshPatients } = useActivePatient();
+  useEffect(() => { if (patientId && Number(patientId) !== session?.user.id) setActivePatientId(patientId); }, [patientId, session?.user.id, setActivePatientId]);
   if (!session) return <DashboardLogin />;
-  const caregiver = Boolean(patientId) || pathname === '/dashboard/caregiver';
-  const overview = pathname === '/dashboard/my-patients';
-  return <div className="dashboard tabular-nums"><div className="dashboard-heading"><h1>MediTrack</h1>
-    <button onClick={async () => { try { await signOut(); } catch (err) { setSignOutError(err.message); } }}>Sign out of dashboard</button></div>
-    {signOutError && <p role="alert">{signOutError}</p>}
-    <nav aria-label="Dashboards"><Link to="/dashboard">My dashboard</Link><Link to="/patients">Linked patients</Link>
-      {activePatient && <Link to={`/patients/${activePatient.patient.id}`}>Caregiver dashboard</Link>}</nav>
-    {overview ? <><h2>Linked patients</h2><button onClick={refreshPatients}>Refresh patients</button>
-      {loading ? <p role="status">Loading linked patients…</p> : error ? <p role="alert">{error}</p> : patients.length ?
-        <ul className="dashboard-list">{patients.map((row) => <li key={row.patient.id}><strong>{row.patient.fullName}</strong>
-          <span>{row.relationshipType} · {row.permissionLevel.replaceAll('_', ' ')}</span>
-          <Link to={`/patients/${row.patient.id}`} onClick={() => setActivePatientId(row.patient.id)}>View dashboard</Link></li>)}</ul>
-        : <p>No active linked patients.</p>}</> : caregiver ? <>
-      <h2>Caregiver dashboard</h2>{loading ? <p role="status">Loading linked patients…</p> : error ? <p role="alert">{error}</p> : (patientId || activePatient) ? <>
-        <label>Active patient<select value={patientId || activePatient?.patient.id} onChange={(event) => { setActivePatientId(event.target.value); navigate(`/patients/${event.target.value}`); }}>
-          {patients.map((row) => <option key={row.patient.id} value={row.patient.id}>{row.patient.fullName}</option>)}
-        </select></label>
-        <DashboardData patientId={patientId || activePatient.patient.id} permissionLevel={patients.find((row) => row.patient.id === Number(patientId))?.permissionLevel || activePatient?.permissionLevel} />
-      </> : <p>No active linked patients.</p>}
-    </> : <DashboardData />}</div>;
+  // The caregiver endpoint deliberately rejects self-access.
+  if (patientId && Number(patientId) === session.user.id) return <Navigate to="/dashboard" replace />;
+  if (pathname === '/dashboard/caregiver') {
+    if (loading) return <Skeleton label="Loading linked patients" />;
+    if (error) return <ErrorState onRetry={refreshPatients}>{error}</ErrorState>;
+    return <Navigate to={activePatient ? `/patients/${activePatient.patient.id}` : '/patients'} replace />;
+  }
+  return <div className="dashboard tabular-nums">
+    {pathname === '/patients' ? <PatientOverview /> : <>
+      <DashboardData key={`${session.user.id}:${patientId || 'self'}`} patientId={patientId} />
+      {!patientId && activePatient && <Link to={`/patients/${activePatient.patient.id}`}>Caregiver dashboard</Link>}
+    </>}
+  </div>;
 }

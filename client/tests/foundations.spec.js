@@ -55,7 +55,7 @@ test('session check does not flash login; dashboard refresh and saved theme work
   const { release, calls } = await mockSession(page, { delayed: true });
   await page.goto('/dashboard'); await expect(page.getByRole('status', { name: 'Checking your session' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Log in', exact: true })).toHaveCount(0);
-  release(); await expect(page.getByText('No doses scheduled today.')).toBeVisible();
+  release(); await expect(page.getByRole('heading', { name: 'No doses are scheduled for today.' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('button', { name: 'Toggle theme' }).click(); await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   const before = calls.filter((path) => path === '/api/dashboard/patient').length;

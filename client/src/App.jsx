@@ -27,7 +27,7 @@ export default function App() {
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
       <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/patients" element={<Placeholder title="Patients" />} />
+      <Route path="/patients" element={<Dashboard />} />
       <Route path="/patients/:patientId" element={<Dashboard />} />
       <Route path="/relationships" element={<RelationshipsPage />} />
       <Route path="/relationships/invite" element={<InvitePage />} />

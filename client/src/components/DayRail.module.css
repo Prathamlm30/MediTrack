@@ -1,29 +1,40 @@
-.figure { margin: 0; padding: var(--s6); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); }
-.axis { position: relative; margin: var(--s7) var(--s4) 0; height: calc(var(--s8) + var(--lanes) * var(--s9)); border-top: 1px solid var(--line-strong); }
+.figure { margin: 0; padding: var(--s6); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); min-width: 0; }
+.scroll { overflow: auto; padding: var(--s4); }
+.axis { position: relative; margin: var(--s7) var(--s6) var(--s3); height: calc(var(--s8) + var(--lanes) * var(--s10)); border-top: 1px solid var(--line-strong); }
 .point { position: absolute; top: 0; left: var(--position); }
-.segment { position: absolute; top: -2px; left: calc(-1 * var(--s4)); width: var(--s7); height: 3px; background: var(--period); }
+.segment { position: absolute; top: -2px; left: calc(-1 * var(--s3)); width: var(--s6); height: 3px; background: var(--period); }
 .morning { --period: var(--tod-morning); }
 .midday { --period: var(--tod-midday); }
 .evening { --period: var(--tod-evening); }
 .night { --period: var(--tod-night); }
-.marker { position: absolute; display: flex; align-items: center; justify-content: center; top: calc(-1 * var(--s3)); left: calc(-1 * var(--s3)); width: var(--s6); height: var(--s6); border: 1px solid currentColor; border-radius: var(--r-pill); background: var(--paper); }
+.stem { position: absolute; top: 0; height: calc(var(--lane) * var(--s10)); border-left: 1px solid var(--line-strong); }
+.marker { position: absolute; display: flex; align-items: center; justify-content: center; top: calc(var(--lane) * var(--s10) - var(--s3)); left: calc(-1 * var(--s3)); width: var(--s6); height: var(--s6); border: 1px solid currentColor; border-radius: var(--r-pill); background: var(--paper); }
+.marker:hover, .marker:focus { z-index: 4; }
+.marker:focus-visible { box-shadow: var(--focus-ring); outline: 2px solid transparent; }
+.enter { animation: settle var(--dur-base) var(--ease) both; animation-delay: var(--delay); }
+@keyframes settle { from { opacity: 0; transform: translateY(calc(-1 * var(--s1))); } to { opacity: 1; transform: translateY(0); } }
 .taken { color: var(--taken-bg); background: var(--taken); }
 .missed { color: var(--missed-bg); background: var(--missed); }
 .skipped { color: var(--skipped); background: var(--skipped-bg); }
 .snoozed { color: var(--snoozed); background: var(--snoozed-bg); }
 .pending { color: var(--ink-2); }
-.caption { position: absolute; top: calc(var(--s6) + var(--lane) * var(--s9)); left: 0; transform: translateX(-50%); display: grid; width: var(--s10); font-size: var(--t-caption); color: var(--ink-2); overflow-wrap: anywhere; }
-.tooltip { display: none; position: absolute; z-index: 3; top: var(--s7); width: var(--rail-w); max-width: 50vw; padding: var(--s3); border-radius: var(--r-layer); box-shadow: var(--shadow-layer); color: var(--ink); background: var(--paper); }
+.caption { position: absolute; top: calc(var(--s5) + var(--lane) * var(--s10)); left: 0; transform: translateX(-50%); width: var(--s10); text-align: center; font-size: var(--t-caption); color: var(--ink-2); }
+.tooltip { display: none; position: absolute; z-index: 5; top: var(--s7); left: 0; width: var(--rail-w); max-width: 50vw; padding: var(--s3); border-radius: var(--r-layer); box-shadow: var(--shadow-layer); color: var(--ink); background: var(--paper); font-size: var(--t-small); }
+.endTooltip { left: auto; right: 0; }
 .marker:hover .tooltip, .marker:focus .tooltip { display: block; }
-.now { position: absolute; left: var(--position); top: calc(-1 * var(--s5)); height: var(--s8); border-left: 1px solid var(--ink); }
+.now { position: absolute; left: var(--position); top: calc(-1 * var(--s5)); height: calc(var(--s8) + var(--lanes) * var(--s10)); border-left: 1px solid var(--ink); pointer-events: none; }
 .now > span { position: absolute; bottom: 100%; transform: translateX(-50%); font-size: var(--t-caption); }
 .figure figcaption { font-size: var(--t-small); color: var(--ink-2); }
 @media (max-width: 639px) {
-  .axis { height: max(400px, calc(var(--lanes) * var(--s10))); margin: var(--s6) 0 var(--s6) var(--s3); border-top: 0; border-left: 1px solid var(--line-strong); }
+  .figure { padding: var(--s4); }
+  .axis { height: calc(var(--s10) * 8); min-width: calc(var(--lanes) * var(--s10)); margin: var(--s6) var(--s3) var(--s9); border-top: 0; border-left: 1px solid var(--line-strong); }
   .point { left: 0; top: var(--position); }
-  .segment { top: calc(-1 * var(--s4)); left: -2px; height: var(--s7); width: 3px; }
-  .caption { top: calc(-1 * var(--s3)); left: var(--s6); transform: none; width: auto; min-width: 150px; }
-  .now { left: calc(-1 * var(--s3)); top: var(--position); width: var(--s6); height: 0; border-left: 0; border-top: 1px solid var(--ink); }
-  .now > span { left: var(--s7); transform: none; }
-  .tooltip { left: var(--s7); }
+  .segment { top: calc(-1 * var(--s3)); left: -2px; height: var(--s6); width: 3px; }
+  .stem { top: 0; width: calc(var(--lane) * var(--s10)); height: 0; border-left: 0; border-top: 1px solid var(--line-strong); }
+  .marker { top: calc(-1 * var(--s3)); left: calc(var(--lane) * var(--s10) - var(--s3)); }
+  .caption { top: var(--s4); left: calc(var(--lane) * var(--s10)); transform: none; text-align: left; }
+  .now { left: calc(-1 * var(--s3)); top: var(--position); width: calc(var(--lanes) * var(--s10)); height: 0; border-left: 0; border-top: 1px solid var(--ink); }
+  .now > span { left: 100%; transform: translateX(-100%); }
+  .tooltip, .endTooltip { left: 0; right: auto; }
 }
+@media (prefers-reduced-motion: reduce) { .enter { animation: none; } }

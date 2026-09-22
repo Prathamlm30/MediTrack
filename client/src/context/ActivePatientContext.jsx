@@ -16,16 +16,17 @@ export function ActivePatientProvider({ children }) {
     let controller;
     async function load() {
       controller?.abort();
-      controller = new AbortController();
+      const pending = new AbortController(); controller = pending;
       try {
-        const data = await getMyPatients({ signal: controller.signal });
-        if (!disposed) {
+        const data = await getMyPatients({ signal: pending.signal });
+        if (!disposed && !pending.signal.aborted) {
           setOverview({ token, patients: data.patients });
           setSelection((previous) => ({ token, id: data.patients.some((row) => row.patient.id === previous?.id && previous.token === token)
             ? previous.id : data.patients[0]?.patient.id ?? null }));
         }
       } catch (error) {
-        if (!disposed && error.name !== 'AbortError') setOverview({ token, patients: [], error: error.message });
+        if (!disposed && !pending.signal.aborted && error.name !== 'AbortError') setOverview((previous) => ({ token,
+          patients: previous?.token === token ? previous.patients : [], error: error.message }));
       }
     }
     void load();

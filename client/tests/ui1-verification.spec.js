@@ -89,9 +89,11 @@ for (const theme of ['light', 'dark']) {
     const boundary = card(page, 'Midnight and late evening').getByRole('figure');
     await expect(boundary.locator('time')).toHaveText(['12:00 AM', '11:30 PM']);
     const markers = boundary.locator('[tabindex="0"][role="img"]');
+    await boundary.evaluate(async (element) => { await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)); });
     const first = await markers.first().boundingBox(); const last = await markers.last().boundingBox(); expect(first.x).toBeLessThan(last.x); expect(first.y).toBe(last.y);
     const positions = await markers.evaluateAll((elements) => elements.map((element) => element.parentElement.style.getPropertyValue('--position')));
-    expect(positions).toEqual(['0%', '100%']);
+    expect(positions[0]).toBe('0%');
+    expect(parseFloat(positions[1])).toBeCloseTo(97.9167, 3);
     const fallback = card(page, 'Browser timezone fallback').getByRole('figure');
     await expect(fallback).toHaveAttribute('aria-label', 'Dose timeline in America/Los_Angeles');
     await expect(fallback.locator('time')).toHaveText(['11:30 AM', '11:00 AM']);
