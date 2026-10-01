@@ -1,0 +1,10 @@
+{
+  "scanId": 8,
+  "reviewUrl": "http://localhost:5173/prescription-scans/8",
+  "editedInstructions": "7 days; reviewed against synthetic fixture",
+  "desktopWidth": 1440,
+  "mobileWidth": 390,
+  "overflow": false,
+  "browserErrors": [],
+  "confirmed": true
+}

@@ -1,0 +1,67 @@
+{
+  "doctor": {
+    "address": "216 Station Road, Jaipur",
+    "doctorName": "Vikram Shah",
+    "contactNumber": "+91 9512399993",
+    "specialization": null,
+    "clinicHospitalName": "Maple Health Clinic"
+  },
+  "medicines": [
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 20,
+      "instructions": "3 days",
+      "medicineForm": "capsule",
+      "medicineName": "Omeprazole",
+      "frequencyText": "8D"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 10,
+      "instructions": "3 days",
+      "medicineForm": "tablet",
+      "medicineName": "Cetirizine",
+      "frequencyText": "QID"
+    },
+    {
+      "dosageUnit": "drops",
+      "genericName": null,
+      "dosageAmount": 3,
+      "instructions": "7 days",
+      "medicineForm": "drops",
+      "medicineName": "Saline",
+      "frequencyText": "0-0-1"
+    },
+    {
+      "dosageUnit": "drops",
+      "genericName": null,
+      "dosageAmount": 2,
+      "instructions": "5 days",
+      "medicineForm": "drops",
+      "medicineName": "Ciprofloxacin",
+      "frequencyText": "TDS"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 500,
+      "instructions": "10 days",
+      "medicineForm": "tablet",
+      "medicineName": "Metformin",
+      "frequencyText": "1-1-1"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 200,
+      "instructions": "7 days",
+      "medicineForm": "tablet",
+      "medicineName": "Ibuprofen",
+      "frequencyText": "1-1-1"
+    }
+  ],
+  "ocrRawText": "Dr. Vikram Shah - MBBS\nMaple Health Clinic\nPhone: +91 9512399993\nAddress: 216 Station Road, Jaipur\nPatient: Priya Das\nAge: 30 Gender: Female\nPRESCRIPTION\n1. capsule Omeprazole 20 mg 8D for 3 days\n2. tablet Cetirizine 10 mg QID for 3 days\n3. drops Saline 3 drops 0-0-1 for 7 days\n4. drops Ciprofloxacin 2 drops TDS for 5 days\n5. tablet Metformin 500 mg 1-1-1 for 10 days\n6. tablet Ibuprofen 200 mg 1-1-1 for 7 days\nSYNTHETIC OCR TEST - NOT FOR CLINICAL USE",
+  "ocrConfidenceScore": 0.9862076469830104
+}

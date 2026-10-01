@@ -1,0 +1,8 @@
+{
+  "scanStatus": "needs_review",
+  "reviewUrl": "http://localhost:5173/prescription-scans/9",
+  "scanId": 9,
+  "medicineCount": 5,
+  "socketEventReceived": true,
+  "command": "curl.exe multipart upload"
+}

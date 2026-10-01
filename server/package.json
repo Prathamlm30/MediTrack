@@ -35,7 +35,9 @@
     "jsonwebtoken": "9.0.3",
     "node-cron": "4.6.0",
     "nodemailer": "^10.0.10",
-    "socket.io": "4.8.3"
+    "socket.io": "4.8.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "prisma": "6.19.3"

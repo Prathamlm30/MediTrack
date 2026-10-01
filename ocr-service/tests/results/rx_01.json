@@ -1,0 +1,49 @@
+{
+  "doctor": {
+    "address": "180 Park Road, Jaipur",
+    "doctorName": "Rohan Desai",
+    "contactNumber": "+91 6440973500",
+    "specialization": null,
+    "clinicHospitalName": "River Medical Centre"
+  },
+  "medicines": [
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 500,
+      "instructions": "7 days",
+      "medicineForm": "tablet",
+      "medicineName": "Paracetamol",
+      "frequencyText": "BD"
+    },
+    {
+      "dosageUnit": "drops",
+      "genericName": null,
+      "dosageAmount": 3,
+      "instructions": "3 days",
+      "medicineForm": "drops",
+      "medicineName": "Saline",
+      "frequencyText": "0-0-1"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 250,
+      "instructions": "10 days",
+      "medicineForm": "capsule",
+      "medicineName": "Amoxicillin",
+      "frequencyText": "TDS"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 10,
+      "instructions": "5 days",
+      "medicineForm": "tablet",
+      "medicineName": "Cetirizine",
+      "frequencyText": "QID"
+    }
+  ],
+  "ocrRawText": "River Medical Centre\nDr. Rohan Desai - MBBS\nAddress: 180 Park Road, Jaipur\nPhone: +91 6440973500\nPatient: Priya Das\nAge: 26 Gender: Female\nPRESCRIPTION\n1. tablet Paracetamol 500 mg BD for 7 days\n2. drops Saline 3 drops 0-0-1 for 3 days\n3. capsule Amoxicillin 250 mg TDS for 10 days\n4. tablet Cetirizine 10 mg QID for 5 days\nSYNTHETIC OCR TEST - NOT FOR CLINICAL USE",
+  "ocrConfidenceScore": 0.989516963561376
+}

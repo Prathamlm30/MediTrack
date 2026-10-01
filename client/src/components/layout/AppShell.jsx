@@ -15,8 +15,8 @@ export default function AppShell() {
   const [failure, setFailure] = useState(null);
   const [menu, setMenu] = useState(false); const [busy, setBusy] = useState(false);
   const navigate = useNavigate(); const { pathname } = useLocation(); const { patientId } = useParams();
-  const links = [['/dashboard', 'Dashboard'], ...(patients.length ? [['/patients', 'Patients']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
-  const title = pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
+  const links = [['/dashboard', 'Dashboard'], ['/prescription-scans', 'Scan'], ...(patients.length ? [['/patients', 'Patients']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
+  const title = pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
   async function toggleTheme() {
     setFailure(null); setBusy(true);
     const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);

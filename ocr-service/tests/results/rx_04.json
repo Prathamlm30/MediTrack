@@ -1,0 +1,58 @@
+{
+  "doctor": {
+    "address": "227 Park Road, Chennai",
+    "doctorName": "Arjun Mehta",
+    "contactNumber": "+91 9290076568",
+    "specialization": null,
+    "clinicHospitalName": "Maple Health Clinic"
+  },
+  "medicines": [
+    {
+      "dosageUnit": "IU",
+      "genericName": null,
+      "dosageAmount": 1000,
+      "instructions": "7 days",
+      "medicineForm": "capsule",
+      "medicineName": "Vitamin D3",
+      "frequencyText": "TDS"
+    },
+    {
+      "dosageUnit": "g",
+      "genericName": null,
+      "dosageAmount": 1,
+      "instructions": "5 days",
+      "medicineForm": "injection",
+      "medicineName": "Ceftriaxone",
+      "frequencyText": "OD"
+    },
+    {
+      "dosageUnit": "ml",
+      "genericName": null,
+      "dosageAmount": 10,
+      "instructions": "10 days",
+      "medicineForm": "syrup",
+      "medicineName": "Lactulose",
+      "frequencyText": "1-0-1"
+    },
+    {
+      "dosageUnit": "g",
+      "genericName": null,
+      "dosageAmount": 1,
+      "instructions": "10 days",
+      "medicineForm": "ointment",
+      "medicineName": "Clotrimazole",
+      "frequencyText": "OD"
+    },
+    {
+      "dosageUnit": "mg",
+      "genericName": null,
+      "dosageAmount": 500,
+      "instructions": "10 days",
+      "medicineForm": "tablet",
+      "medicineName": "Paracetamol",
+      "frequencyText": "OD"
+    }
+  ],
+  "ocrRawText": "Address: 227 Park Road, Chennai\nMaple Health Clinic\nDr. Arjun Mehta - MD\nPhone: +91 9290076568\nAge: 57 Gender: Female\nPatient: Ishan Verma\nPRESCRIPTION\n1. Vitamin D3 capsule 1000 IU\nTDS for 7 days\n2. Ceftriaxone injection 1 g\nOD for 5 days\n3. Lactulose syrup 10 ml\n1-0-1 for 10 days\n4. Clotrimazole ointment 1 g\nOD for 10 days\n5. Paracetamol tablet 500 mg\nOD for 10 days\nSYNTHETIC OCR TEST - NOT FOR CLINICAL USE",
+  "ocrConfidenceScore": 0.9890428185462952
+}

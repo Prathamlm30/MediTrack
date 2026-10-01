@@ -1,0 +1,54 @@
+{
+  "patientId": 101,
+  "runs": [
+    {
+      "fixture": "rx_01",
+      "scanId": 4,
+      "uploadMs": 13,
+      "totalMs": 10442,
+      "event": {
+        "scanId": 4,
+        "scanStatus": "needs_review"
+      },
+      "confidence": 0.989516963561376,
+      "medicineCount": 4
+    },
+    {
+      "fixture": "rx_04",
+      "scanId": 5,
+      "uploadMs": 12,
+      "totalMs": 11062,
+      "event": {
+        "scanId": 5,
+        "scanStatus": "needs_review"
+      },
+      "confidence": 0.9890428185462952,
+      "medicineCount": 5
+    },
+    {
+      "fixture": "rx_08",
+      "scanId": 6,
+      "uploadMs": 17,
+      "totalMs": 8237,
+      "event": {
+        "scanId": 6,
+        "scanStatus": "needs_review"
+      },
+      "confidence": 0.9862076469830104,
+      "medicineCount": 6
+    }
+  ],
+  "confirmation": {
+    "scanId": 5,
+    "doctorId": 2,
+    "medicationIds": [
+      32,
+      33,
+      34,
+      35,
+      36
+    ],
+    "scanStatus": "completed",
+    "reviewedAt": "2026-10-01T17:05:43.772Z"
+  }
+}

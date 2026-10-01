@@ -12,6 +12,7 @@ import Skeleton from './components/Skeleton.jsx';
 import { Landing, SignInPage, ForgotPassword, ResetPassword, VerifyEmail } from './pages/account/AuthPages.jsx';
 import { AccountPage } from './pages/account/ProfilePages.jsx';
 import { RelationshipsPage, InvitePage, InvitationPage } from './pages/relationships/RelationshipPages.jsx';
+import { UploadPrescription, ReviewPrescription } from './pages/prescription-scans/PrescriptionScans.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
@@ -27,6 +28,8 @@ export default function App() {
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/prescription-scans" element={<UploadPrescription />} />
+      <Route path="/prescription-scans/:id" element={<ReviewPrescription />} />
       <Route path="/patients" element={<Dashboard />} />
       <Route path="/patients/:patientId" element={<Dashboard />} />
       <Route path="/relationships" element={<RelationshipsPage />} />
