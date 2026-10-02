@@ -3,6 +3,7 @@ import prisma from './prismaClient.js';
 import redis from './config/redis.js';
 import { createServer } from 'node:http';
 import { installScanRuntime } from './routes/prescription-scans/runtime.js';
+import { startInventoryJob } from './jobs/inventoryJob.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 3000);
@@ -16,6 +17,7 @@ async function shutdown(exitCode = 0) {
   stopping = true;
   const timeout = setTimeout(() => process.exit(1), 130000);
   timeout.unref();
+  await app.locals.inventoryJob?.destroy();
   await app.locals.scanRuntime?.close();
   if (server?.listening) await new Promise((resolve) => server.close(resolve));
   redis.disconnect();
@@ -30,6 +32,7 @@ try {
   await Promise.all([prisma.$connect(), redis.connect()]);
   server = createServer(app);
   app.locals.scanRuntime = installScanRuntime(server);
+  app.locals.inventoryJob = startInventoryJob();
   server.listen(port, host, () => {
     console.log(`MediTrack server listening at http://${host}:${port}`);
   });
