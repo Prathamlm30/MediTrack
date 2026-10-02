@@ -8,6 +8,7 @@ import { startDoseLogJob } from './jobs/doseLogJob.js';
 import { startAdherenceJob } from './jobs/adherenceJob.js';
 import { startWeeklyAdherenceJob } from './jobs/weeklyAdherenceJob.js';
 import { startEscalationJob } from './jobs/escalationJob.js';
+import { startWeeklyReportJob } from './jobs/weeklyReportJob.js';
 
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 3000);
@@ -23,6 +24,7 @@ async function shutdown(exitCode = 0) {
   timeout.unref();
   await app.locals.inventoryJob?.destroy();
   await app.locals.escalationJob?.destroy();
+  await app.locals.weeklyReportJob?.destroy();
   for (const job of app.locals.adherenceJobs || []) await job.destroy();
   await app.locals.scanRuntime?.close();
   if (server?.listening) await new Promise((resolve) => server.close(resolve));
@@ -39,6 +41,7 @@ try {
   server = createServer(app);
   app.locals.scanRuntime = installScanRuntime(server);
   app.locals.escalationJob = startEscalationJob(app.locals.scanRuntime);
+  app.locals.weeklyReportJob = startWeeklyReportJob();
   app.locals.inventoryJob = startInventoryJob();
   app.locals.adherenceJobs = [startDoseLogJob(), startAdherenceJob(), startWeeklyAdherenceJob()];
   server.listen(port, host, () => {
