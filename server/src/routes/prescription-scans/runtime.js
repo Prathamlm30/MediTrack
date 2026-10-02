@@ -3,6 +3,7 @@ import prisma from '../../prismaClient.js';
 import verifyJWT from '../../middleware/verifyJWT.js';
 import { storage } from './storage.js';
 import { validateExtraction } from './validation.js';
+import { escalationEmitters } from '../../sockets/index.js';
 
 // One Express process for the local demo. Processing rows are the durable queue;
 // restarting Express resumes outstanding scans without another upload.
@@ -58,7 +59,7 @@ export function installScanRuntime(server) {
   const interval = setInterval(kick, 2000);
   interval.unref();
   server.on('listening', kick);
-  return { kick, emitStatsUpdated(patientId, date) {
+  return { kick, ...escalationEmitters(io), emitStatsUpdated(patientId, date) {
     io.to(`user:${patientId}`).emit('stats-updated', { patientId, date });
   }, async close() {
     stopped = true; clearInterval(interval);
