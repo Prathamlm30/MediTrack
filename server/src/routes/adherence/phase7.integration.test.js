@@ -31,6 +31,9 @@ test('calendar conversion, DST and gap-day streaks', () => {
 
 test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI', async () => {
   const users = []; let server;
+  const events = [];
+  const oldRuntime = app.locals.scanRuntime;
+  app.locals.scanRuntime = { emitStatsUpdated: (patientId, date) => events.push({ patientId, date }) };
   try {
     for (const name of ['Patient', 'Other', 'Caregiver']) users.push(await prisma.user.create({ data: { fullName: name, email: `phase7-${randomUUID()}@example.test`, emailVerified: true, timezone: 'Asia/Kolkata' } }));
     const [patient, other, caregiver] = users;
@@ -68,6 +71,33 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
     await Promise.all([call(`/dose-logs/${dose.id}`, 'PATCH', { status: 'taken' }), call(`/dose-logs/${dose.id}`, 'PATCH', { status: 'taken' })]);
     await call(`/dose-logs/${dose.id}`, 'PATCH', { status: 'taken' });
     assert.equal(Number((await call(medPath + '/inventory')).quantityRemaining), 17.5);
+    assert.equal(events.length, 3); // One committed recompute per successful PATCH, including duplicates.
+    assert.deepEqual(events[0], { patientId: patient.id, date: today });
+    assert.equal((await call('/adherence/heatmap'))[today], 100);
+    assert.equal((await call('/adherence/stats')).currentStreak, 1);
+    const dailyWhere = { patientId: patient.id, periodType: 'daily', periodStartDate: new Date(today) };
+    const immediate = await prisma.adherenceStat.findFirst({ where: dailyWhere });
+    await runAdherenceJob(options);
+    const batch = await prisma.adherenceStat.findFirst({ where: dailyWhere });
+    const { generatedAt: ignoredImmediate, ...immediateValues } = immediate;
+    const { generatedAt: ignoredBatch, ...batchValues } = batch;
+    assert.deepEqual(immediateValues, batchValues);
+    // Fail the stats write inside the real transaction: status and inventory
+    // must roll back, and there must be no post-commit notification.
+    const eventCount = events.length;
+    const originalTransaction = prisma.$transaction.bind(prisma);
+    prisma.$transaction = (work, options) => originalTransaction(async (tx) => {
+      const statClient = new Proxy(tx.adherenceStat, { get(target, key) {
+        if (key === 'update') return async () => { throw new Error('Injected stats write failure'); };
+        return target[key];
+      } });
+      return work(new Proxy(tx, { get(target, key) { return key === 'adherenceStat' ? statClient : target[key]; } }));
+    }, options);
+    try { await call(`/dose-logs/${dose.id}`, 'PATCH', { status: 'skipped' }, 500); }
+    finally { prisma.$transaction = originalTransaction; }
+    assert.equal(events.length, eventCount);
+    assert.equal((await prisma.doseLog.findUnique({ where: { id: dose.id } })).status, 'taken');
+    assert.deepEqual(await prisma.adherenceStat.findFirst({ where: dailyWhere }), batch);
     console.log('Duplicate taken PATCH proof: 20 -> 17.5 after two concurrent PATCHes and a sequential retry (doseAmount=2.5).');
     console.log('Generation proof: two concurrent runs plus a rerun created exactly one DoseLog.');
     await call(`/dose-logs/${dose.id}`, 'PATCH', { status: 'skipped' });
@@ -160,7 +190,13 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
     }
     assert.equal((await runDoseLogJob({ patientId: other.id, date: today })).created, 0);
     const invalidLog = await prisma.doseLog.create({ data: { patientId: other.id, scheduleId: taperSchedule.id, scheduledDatetime: localDatetime(today, '00:30:00', other.timezone) } });
+    const beforeGapEvents = events.length;
+    const beforeGapStats = await prisma.adherenceStat.findMany({ where: { patientId: other.id } });
     const conflict = await call(`/dose-logs/${invalidLog.id}`, 'PATCH', { status: 'taken' }, 409, other);
+    assert.equal(events.length, beforeGapEvents);
+    assert.deepEqual(await prisma.adherenceStat.findMany({ where: { patientId: other.id } }), beforeGapStats);
+    assert.ok(events.some((event) => event.patientId === other.id && event.date === firstDate));
+    assert.ok(events.some((event) => event.patientId === other.id && event.date === secondDate));
     assert.match(conflict.error, /no taper step covers scheduled date/);
     const rolledBack = await prisma.doseLog.findUnique({ where: { id: invalidLog.id } });
     assert.equal(rolledBack.status, 'pending');
@@ -169,6 +205,7 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
     assert.equal(Number((await call(taperPath + '/inventory', 'GET', undefined, 200, other)).quantityRemaining), 17);
     console.log('Taper proof: schedule doseAmount=9, historical local-date steps 2 then 1 => inventory 20 -> 18 -> 17; unmatched date returns 409 with full rollback.');
   } finally {
+    app.locals.scanRuntime = oldRuntime;
     if (server) await new Promise((resolve) => server.close(resolve));
     const ids = users.map((row) => row.id);
     await prisma.adherenceStat.deleteMany({ where: { patientId: { in: ids } } });

@@ -58,7 +58,9 @@ export function installScanRuntime(server) {
   const interval = setInterval(kick, 2000);
   interval.unref();
   server.on('listening', kick);
-  return { kick, async close() {
+  return { kick, emitStatsUpdated(patientId, date) {
+    io.to(`user:${patientId}`).emit('stats-updated', { patientId, date });
+  }, async close() {
     stopped = true; clearInterval(interval);
     await active;
     await new Promise((resolve) => io.close(resolve));

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 import { Link } from 'react-router-dom';
-import { request } from '../../api/client.js';
+import { request, API_BASE_URL } from '../../api/client.js';
 import { inventoryChanged } from '../../api/inventoryUpdates.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useActivePatient } from '../../context/ActivePatientContext.jsx';
@@ -93,8 +94,22 @@ export function AdherenceHeatmap({ data, timezone }) {
   })}</div><p>No data (N/D) · 0% (red) · 1–49% (amber) · 50–99% (pale green) · 100% (green)</p></>;
 }
 function Adherence({ suffix, revision, timezone }) {
-  const { data: heatmap, error: heatmapError } = useResource(`/api/adherence/heatmap${suffix}&months=3`, revision);
-  const { data: stats, error: statsError } = useResource(`/api/adherence/stats${suffix}`, revision);
-  return <><section className={s.card}><h2>Adherence streaks & stats</h2><p>Stats reflect the latest daily aggregation, including any aggregated doses today. They update after the aggregation job runs.</p>{statsError ? <Banner tone="danger">{statsError}</Banner> : !stats ? <p>Loading stats…</p> : <Details entries={[["Current streak", `${stats.currentStreak} days`], ['Best streak', `${stats.bestStreak} days`], ['Rolling 7 days', `${stats.rolling7DayPercentage}%`], ['Rolling 30 days', `${stats.rolling30DayPercentage}%`]]} />}</section>
+  const { session } = useAuth();
+  const [liveRevision, setLiveRevision] = useState(0);
+  const patientId = new URLSearchParams(suffix).get('patientId');
+  useEffect(() => {
+    const refresh = () => setLiveRevision((value) => value + 1);
+    const socket = io(API_BASE_URL, { auth: { token: session.accessToken } });
+    socket.on('stats-updated', (event) => {
+      if (String(event?.patientId) === patientId) refresh();
+    });
+    socket.on('connect', refresh); // Also catch up after a reconnect gap.
+    const interval = setInterval(refresh, 30000);
+    return () => { clearInterval(interval); socket.disconnect(); };
+  }, [session.accessToken, patientId]);
+  const refreshKey = `${revision}:${liveRevision}`;
+  const { data: heatmap, error: heatmapError } = useResource(`/api/adherence/heatmap${suffix}&months=3`, refreshKey);
+  const { data: stats, error: statsError } = useResource(`/api/adherence/stats${suffix}`, refreshKey);
+  return <><section className={s.card}><h2>Adherence streaks & stats</h2><p>Stats update when doses are logged and refresh automatically every 30 seconds.</p>{statsError ? <Banner tone="danger">{statsError}</Banner> : !stats ? <p>Loading stats…</p> : <Details entries={[["Current streak", `${stats.currentStreak} days`], ['Best streak', `${stats.bestStreak} days`], ['Rolling 7 days', `${stats.rolling7DayPercentage}%`], ['Rolling 30 days', `${stats.rolling30DayPercentage}%`]]} />}</section>
     <section className={s.card}><h2>Adherence calendar heatmap</h2>{heatmapError ? <Banner tone="danger">{heatmapError}</Banner> : !heatmap ? <p>Loading calendar…</p> : <AdherenceHeatmap data={heatmap} timezone={timezone} />}</section></>;
 }
