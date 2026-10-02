@@ -7,6 +7,7 @@ export const trackingByForm = Object.freeze({
 });
 export const medicineForms = ['tablet', 'capsule', 'syrup', 'liquid', 'injection', 'ointment', 'cream', 'drops', 'inhaler', 'patch', 'powder', 'spray', 'other'];
 export const trackingTypes = ['countable', 'volume_ml', 'weight_grams'];
+export const inventoryUnits = Object.freeze({ countable: 'units', volume_ml: 'ml', weight_grams: 'g' });
 export function blankMedicine() {
   const d = new Date();
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

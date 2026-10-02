@@ -1,0 +1,11 @@
+.months { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: var(--s6); }
+.calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s1); }
+.weekday { text-align: center; font-size: var(--t-small); }
+.day { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--s1) 0; border-radius: var(--r-control); border: 1px solid var(--line-strong); font-size: var(--t-small); }
+.day small { font-size: var(--t-caption); }
+.empty { background: var(--paper-sunk); color: var(--ink-3); border-style: dashed; }
+.zero { background: var(--missed-bg); color: var(--missed); }
+.low { background: var(--warn-bg); color: var(--warn); }
+.partial { background: var(--taken-bg); color: var(--taken); }
+.full { background: var(--brand); color: var(--brand-ink); }
+.future { color: var(--ink-3); border-color: transparent; }

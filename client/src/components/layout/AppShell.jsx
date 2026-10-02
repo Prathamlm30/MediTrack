@@ -16,7 +16,7 @@ export default function AppShell() {
   const [menu, setMenu] = useState(false); const [busy, setBusy] = useState(false);
   const navigate = useNavigate(); const { pathname } = useLocation(); const { patientId } = useParams();
   const links = [['/dashboard', 'Dashboard'], ['/medications', 'Medications'], ['/doctors', 'Doctors'], ['/prescription-scans', 'Scan'], ...(patients.length ? [['/patients', 'Patients']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
-  const title = pathname.startsWith('/medications') ? 'Medications' : pathname.startsWith('/doctors') ? 'Doctors' : pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
+  const title = pathname.startsWith('/today') ? 'Today' : pathname.startsWith('/dose-history') ? 'Dose history' : pathname.startsWith('/adherence') ? 'Adherence' : pathname.startsWith('/medications') ? 'Medications' : pathname.startsWith('/doctors') ? 'Doctors' : pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
   async function toggleTheme() {
     setFailure(null); setBusy(true);
     const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);

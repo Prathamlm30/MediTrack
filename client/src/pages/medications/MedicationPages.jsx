@@ -8,6 +8,8 @@ import Field from '../../components/Field.jsx';
 import Select from '../../components/Select.jsx';
 import MedicationFields from './MedicationFields.jsx';
 import { blankMedicine } from './medicineForm.js';
+import ScheduleSection from './ScheduleSection.jsx';
+import InventorySection from './InventorySection.jsx';
 import { usePatientScope, useResource, ManagementLinks, Details } from './Management.jsx';
 import s from './Management.module.css';
 
@@ -92,8 +94,8 @@ function Detail({ id }) {
       <section className={s.card}><h2>Medication</h2><Details entries={[
         ['Generic name', m.genericName], ['Form', m.medicineForm], ['Tracking', m.trackingType], ['Dose', `${m.dosageAmount} ${m.dosageUnit}`], ['Frequency', m.frequencyText], ['Instructions', m.instructions], ['Start date', m.startDate.slice(0, 10)], ['End date', m.endDate?.slice(0, 10)], ['Status', m.status], ['Added via', m.addedVia], ['Doctor', m.doctor?.doctorName],
       ]} />{m.canEdit && <div className={s.actions}><Link to={`/medications/${id}/edit${suffix}`}>Edit medication</Link><Button variant="secondary" disabled={m.status === 'discontinued'} loading={busy} onClick={remove}>Discontinue medication</Button></div>}</section>
-      <section className={s.card}><h2>Schedules</h2>{!m.schedules.length && <p>No schedules yet.</p>}{m.schedules.map((row) => <p key={row.id}>{row.timeOfDay.slice(11, 16)} · Days: {row.daysOfWeek} · Dose: {row.doseAmount} {m.dosageUnit} · {row.isActive ? 'Active' : 'Inactive'}{row.isTaperSchedule ? ' · Taper schedule' : ''}</p>)}</section>
-      <section className={s.card}><h2>Inventory</h2>{!m.inventory.length && <p>No inventory yet.</p>}{m.inventory.map((row) => <p key={row.id}>{row.quantityRemaining} / {row.quantityTotal} {row.quantityUnit} remaining · Refill threshold: {row.refillThreshold}{row.estimatedRunoutDate ? ` · Estimated runout: ${row.estimatedRunoutDate.slice(0, 10)}` : ''}</p>)}</section>
+      <ScheduleSection medication={m} />
+      <InventorySection medication={m} />
       <section className={s.card}><h2>Recent dose history</h2><p>Up to 20 most recent scheduled doses.</p>{!m.doseLogs.length && <p>No dose history yet.</p>}{m.doseLogs.map((row) => <p key={row.id}>{new Date(row.scheduledDatetime).toLocaleString()} · {row.status}{row.actualActionDatetime ? ` · Action: ${new Date(row.actualActionDatetime).toLocaleString()}` : ''}{row.notes ? ` · ${row.notes}` : ''}</p>)}</section>
       <section className={s.card}><h2>AI insights</h2>{!m.aiInsights.length && <p>No insights yet.</p>}{m.aiInsights.map((row) => <article key={row.id}><p>{row.insightText}</p><p>{new Date(row.generatedAt).toLocaleString()}{row.isDismissed ? ' · Dismissed' : ''}</p></article>)}</section>
     </>}

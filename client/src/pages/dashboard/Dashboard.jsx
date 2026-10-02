@@ -166,6 +166,7 @@ export default function Dashboard() {
   }
   return <div className="dashboard tabular-nums">
     {pathname === '/patients' ? <PatientOverview /> : <>
+      <nav aria-label="Dose and adherence views"><Link to={`/today?patientId=${patientId || session.user.id}`}>Today</Link>{' · '}<Link to={`/dose-history?patientId=${patientId || session.user.id}`}>Dose log history</Link>{' · '}<Link to={`/adherence?patientId=${patientId || session.user.id}`}>Adherence calendar & stats</Link></nav>
       <DashboardData key={`${session.user.id}:${patientId || 'self'}`} patientId={patientId} />
       {!patientId && activePatient && <Link to={`/patients/${activePatient.patient.id}`}>Caregiver dashboard</Link>}
     </>}

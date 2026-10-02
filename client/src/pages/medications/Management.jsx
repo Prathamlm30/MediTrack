@@ -32,7 +32,7 @@ export function useResource(path, revision = 0) {
   return state.path === path && state.revision === revision ? state : {};
 }
 export function ManagementLinks({ suffix = '' }) {
-  return <nav className={s.actions} aria-label="Medication and doctor management"><Link to={`/medications${suffix}`}>Medications</Link><Link to={`/doctors${suffix}`}>Doctors</Link><Link to="/prescription-scans">Scan prescription</Link></nav>;
+  return <nav className={s.actions} aria-label="Medication and doctor management"><Link to={`/medications${suffix}`}>Medications</Link><Link to={`/doctors${suffix}`}>Doctors</Link><Link to={`/today${suffix}`}>Today</Link><Link to={`/dose-history${suffix}`}>Dose log history</Link><Link to={`/adherence${suffix}`}>Adherence</Link><Link to="/prescription-scans">Scan prescription</Link></nav>;
 }
 export function Details({ entries }) {
   return <dl className={s.details}>{entries.map(([label, value]) => <div key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{value == null || value === '' ? '—' : String(value)}</dd></div>)}</dl>;

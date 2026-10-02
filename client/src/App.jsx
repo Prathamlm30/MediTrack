@@ -15,6 +15,7 @@ import { RelationshipsPage, InvitePage, InvitationPage } from './pages/relations
 import { UploadPrescription, ReviewPrescription } from './pages/prescription-scans/PrescriptionScans.jsx';
 import { MedicationList, MedicationEdit, MedicationDetail } from './pages/medications/MedicationPages.jsx';
 import { DoctorList, DoctorEdit } from './pages/doctors/DoctorPages.jsx';
+import AdherencePage from './pages/adherence/AdherencePages.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
@@ -37,6 +38,9 @@ export default function App() {
       <Route path="/doctors/add" element={<DoctorEdit />} />
       <Route path="/doctors/:id/edit" element={<DoctorEdit />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/today" element={<AdherencePage view="today" />} />
+      <Route path="/dose-history" element={<AdherencePage view="history" />} />
+      <Route path="/adherence" element={<AdherencePage view="adherence" />} />
       <Route path="/prescription-scans" element={<UploadPrescription />} />
       <Route path="/prescription-scans/:id" element={<ReviewPrescription />} />
       <Route path="/patients" element={<Dashboard />} />

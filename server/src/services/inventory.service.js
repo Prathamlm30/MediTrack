@@ -13,12 +13,16 @@ export async function inventoryTransaction(work) {
   }
 }
 
-/** doseAmount is already in inventory units: count, mL, or grams. No conversion here. */
-export async function decrementInventory(medicationId, patientId, doseAmount) {
+/**
+ * doseAmount is already in inventory units: count, mL, or grams. No conversion here.
+ * A supplied tx joins the caller's atomic operation; existing three-argument
+ * callers retain their own Serializable transaction and retry behavior.
+ */
+export async function decrementInventory(medicationId, patientId, doseAmount, tx) {
   let amount;
   try { amount = new Prisma.Decimal(doseAmount); } catch { throw new HttpError(400, 'Invalid doseAmount.'); }
   if (!amount.isFinite() || amount.lte(0) || amount.decimalPlaces() > 2) throw new HttpError(400, 'doseAmount must be positive with at most two decimal places.');
-  return inventoryTransaction(async (tx) => {
+  const decrement = async (tx) => {
     const rows = await tx.medicineInventory.findMany({ where: { medicationId, patientId } });
     if (!rows.length) throw new HttpError(404, 'Inventory not found.');
     if (rows.length !== 1) throw new HttpError(409, 'Duplicate inventory rows require correction.');
@@ -26,5 +30,6 @@ export async function decrementInventory(medicationId, patientId, doseAmount) {
     return tx.medicineInventory.update({ where: { id: row.id }, data: {
       quantityRemaining: Prisma.Decimal.max(0, row.quantityRemaining.minus(amount)),
     } });
-  });
+  };
+  return tx ? decrement(tx) : inventoryTransaction(decrement);
 }
