@@ -1,0 +1,9 @@
+.page { display: grid; gap: var(--s6); }
+.card { display: grid; gap: var(--s4); padding: var(--s6); background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-control); min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); }
+.actions { display: flex; gap: var(--s4); align-items: center; flex-wrap: wrap; }
+.list { display: grid; gap: var(--s4); padding: 0; list-style: none; }
+.details { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr); gap: var(--s3); margin: 0; }
+.details dt { font-weight: 600; }
+.details dd { margin: 0; white-space: pre-wrap; }
+@media (max-width: 540px) { .fields { grid-template-columns: 1fr; } .card { padding: var(--s4); } }

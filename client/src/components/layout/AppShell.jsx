@@ -15,8 +15,8 @@ export default function AppShell() {
   const [failure, setFailure] = useState(null);
   const [menu, setMenu] = useState(false); const [busy, setBusy] = useState(false);
   const navigate = useNavigate(); const { pathname } = useLocation(); const { patientId } = useParams();
-  const links = [['/dashboard', 'Dashboard'], ['/prescription-scans', 'Scan'], ...(patients.length ? [['/patients', 'Patients']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
-  const title = pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
+  const links = [['/dashboard', 'Dashboard'], ['/medications', 'Medications'], ['/doctors', 'Doctors'], ['/prescription-scans', 'Scan'], ...(patients.length ? [['/patients', 'Patients']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
+  const title = pathname.startsWith('/medications') ? 'Medications' : pathname.startsWith('/doctors') ? 'Doctors' : pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
   async function toggleTheme() {
     setFailure(null); setBusy(true);
     const dark = document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
@@ -33,7 +33,7 @@ export default function AppShell() {
       <span className={s.mobileTitle}>{title}</span>{patientId && <PatientSwitcher patients={patients} activePatientId={patientId || activePatientId} loading={loading} error={error} onRetry={refreshPatients}
         onChange={(id) => { setActivePatientId(id); navigate(`/patients/${id}`); }} />}</header>
       <main id="main-content" className={s.content} tabIndex={-1}><Outlet />{failure && <ErrorState title="Could not complete the action" loading={busy} onRetry={failure.retry}>{failure.message}</ErrorState>}</main></div>
-    <nav className={s.bottom} aria-label="Mobile navigation">{links.filter(([path]) => path !== '/patients').map(([path, label]) => <NavLink key={path} to={path}>{label}</NavLink>)}</nav>
+    <nav className={s.bottom} aria-label="Mobile navigation">{links.filter(([path]) => !['/patients', '/doctors', '/relationships'].includes(path)).map(([path, label]) => <NavLink key={path} to={path}>{label}</NavLink>)}</nav>
     <Modal open={menu} onClose={() => setMenu(false)} title="MediTrack">{navigation}{user}{failure && <ErrorState title="Could not complete the action" loading={busy} onRetry={failure.retry}>{failure.message}</ErrorState>}</Modal>
   </div>;
 }

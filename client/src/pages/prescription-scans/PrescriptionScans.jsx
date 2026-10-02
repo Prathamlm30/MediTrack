@@ -12,15 +12,11 @@ import Button from '../../components/Button.jsx';
 import Banner from '../../components/Banner.jsx';
 import Checkbox from '../../components/Checkbox.jsx';
 import s from './PrescriptionScans.module.css';
+import MedicationFields from '../medications/MedicationFields.jsx';
+import DoctorFields from '../doctors/DoctorFields.jsx';
+import { blankMedicine, reviewMedicine } from '../medications/medicineForm.js';
 
 const base = '/api/prescription-scans';
-const doctorFields = [['doctorName', 'Doctor name'], ['specialization', 'Specialization'],
-  ['clinicHospitalName', 'Clinic or hospital'], ['contactNumber', 'Contact number'], ['address', 'Address']];
-const medicineFields = [['medicineName', 'Medicine name'], ['genericName', 'Generic name'],
-  ['dosageAmount', 'Dose amount'], ['dosageUnit', 'Dose unit'], ['frequencyText', 'Frequency'], ['instructions', 'Instructions and duration']];
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const blankMedicine = () => ({ medicineName: '', genericName: '', medicineForm: '', dosageAmount: '',
-  dosageUnit: '', frequencyText: '', instructions: '', trackingType: '', startDate: today(), endDate: '' });
 
 export function UploadPrescription() {
   const { session } = useAuth();
@@ -81,7 +77,7 @@ function Review({ id }) {
         setScan(data); setError('');
         if (data.scanStatus === 'needs_review') setDraft((old) => old || {
           doctor: data.ocrExtractedData.doctor,
-          medicines: data.ocrExtractedData.medicines.map((m) => ({ ...blankMedicine(), ...m })),
+          medicines: data.ocrExtractedData.medicines.map(reviewMedicine),
         });
       } catch (err) {
         if (live && current === revision) {
@@ -98,8 +94,8 @@ function Review({ id }) {
     void load(); // Covers a completed scan opened later or a missed event.
     return () => { live = false; socket.disconnect(); };
   }, [id, session.accessToken, reload]);
-  const updateDoctor = (key, value) => { setReviewed(false); setDraft((d) => ({ ...d, doctor: { ...d.doctor, [key]: value } })); };
-  const updateMedicine = (index, key, value) => { setReviewed(false); setDraft((d) => ({ ...d, medicines: d.medicines.map((m, i) => i === index ? { ...m, [key]: value } : m) })); };
+  const updateDoctor = (doctor) => { setReviewed(false); setDraft((d) => ({ ...d, doctor })); };
+  const updateMedicine = (index, value) => { setReviewed(false); setDraft((d) => ({ ...d, medicines: d.medicines.map((m, i) => i === index ? value : m) })); };
   async function confirm(event) {
     event.preventDefault(); setError(''); setBusy(true);
     try {
@@ -126,18 +122,11 @@ function Review({ id }) {
         </aside>
         <form className={s.form} onSubmit={confirm}>
           <fieldset className={s.card} disabled={busy || !scan.canConfirm}><legend>Doctor</legend><div className={s.fields}>
-            {doctorFields.map(([key, label]) => <Field key={key} label={label} required={key === 'doctorName'}><TextInput value={draft.doctor[key] ?? ''} maxLength={2000} onChange={(e) => updateDoctor(key, e.target.value)} /></Field>)}
+            <DoctorFields value={draft.doctor} onChange={updateDoctor} />
           </div></fieldset>
           {draft.medicines.map((m, index) => <fieldset className={s.card} key={index} disabled={busy || !scan.canConfirm}>
             <legend>Medicine {index + 1}</legend><div className={s.fields}>
-              {medicineFields.map(([key, label]) => <Field key={key} label={label} required={['medicineName', 'dosageAmount', 'dosageUnit', 'frequencyText'].includes(key)}>
-                <TextInput value={m[key] ?? ''} type={key === 'dosageAmount' ? 'number' : 'text'} min={key === 'dosageAmount' ? '0.01' : undefined} max={key === 'dosageAmount' ? '9999.99' : undefined} step={key === 'dosageAmount' ? '0.01' : undefined}
-                  onChange={(e) => updateMedicine(index, key, e.target.value)} />
-              </Field>)}
-              <Field label="Medicine form" required><Select value={m.medicineForm ?? ''} onChange={(e) => updateMedicine(index, 'medicineForm', e.target.value)}><option value="">Choose a form</option>{scan.medicineForms.map((f) => <option key={f}>{f}</option>)}</Select></Field>
-              <Field label="Inventory tracking" required><Select value={m.trackingType} onChange={(e) => updateMedicine(index, 'trackingType', e.target.value)}><option value="">Choose tracking</option>{scan.trackingTypes.map((t) => <option key={t} value={t}>{t.replaceAll('_', ' ')}</option>)}</Select></Field>
-              <Field label="Start date" required><TextInput type="date" value={m.startDate} onChange={(e) => updateMedicine(index, 'startDate', e.target.value)} /></Field>
-              <Field label="End date (optional)"><TextInput type="date" value={m.endDate} min={m.startDate} onChange={(e) => updateMedicine(index, 'endDate', e.target.value)} /></Field>
+              <MedicationFields value={m} onChange={(value) => updateMedicine(index, value)} />
             </div><Button variant="ghost" onClick={() => { setReviewed(false); setDraft((d) => ({ ...d, medicines: d.medicines.filter((_, i) => i !== index) })); }}>Remove medicine {index + 1}</Button>
           </fieldset>)}
           {scan.canConfirm && <div className={s.card}><Button variant="secondary" disabled={busy || draft.medicines.length >= 30} onClick={() => { setReviewed(false); setDraft((d) => ({ ...d, medicines: [...d.medicines, blankMedicine()] })); }}>Add missing medicine</Button>
