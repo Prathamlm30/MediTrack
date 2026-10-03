@@ -113,6 +113,7 @@ test('Phase 3: live scoped dashboards, permission filtering and multiple patient
     if (server) await new Promise((resolve) => server.close(resolve));
     if (ownIds.length) {
       await prisma.$transaction([
+        prisma.aiInsight.deleteMany({ where: { patientId: { in: ownIds } } }),
         prisma.caregiverPatientLink.deleteMany({ where: { OR: [{ patientId: { in: ownIds } }, { caregiverId: { in: ownIds } }] } }),
         prisma.doseLog.deleteMany({ where: { patientId: { in: ownIds } } }),
         prisma.adherenceStat.deleteMany({ where: { patientId: { in: ownIds } } }),

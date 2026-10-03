@@ -4,6 +4,7 @@ import verifyJWT from '../../middleware/verifyJWT.js';
 import { authorizeCaregiver, listCaregiverPatients } from '../caregiver/patients.js';
 import { HttpError } from '../../services/authErrors.js';
 import { dayWindow } from './dayWindow.js';
+import { generateAdherenceInsight } from '../insights/generation.js';
 
 const medicationSummary = { id: true, medicineName: true, medicineForm: true, dosageAmount: true, dosageUnit: true };
 async function dashboard(patientId, permissionLevel, readOnly) {
@@ -91,7 +92,13 @@ router.use(verifyJWT);
  *       '500':
  *         $ref: '#/components/responses/ServerError'
  */
-router.get('/patient', async (req, res) => res.json(await dashboard(req.user.id, 'full_access', false)));
+router.get('/patient', async (req, res) => {
+  const result = await dashboard(req.user.id, 'full_access', false);
+  // Cache per UTC week. A provider outage must not hide the patient's dashboard.
+  try { await generateAdherenceInsight(req.user.id); }
+  catch (error) { console.error('Adherence insight generation failed:', error.code || error.name); }
+  res.json(result);
+});
 /**
  * @openapi
  * /api/dashboard/caregiver/{patientId}:

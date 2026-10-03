@@ -3,6 +3,8 @@ import prisma from '../../prismaClient.js';
 import verifyJWT from '../../middleware/verifyJWT.js';
 import checkPermission from '../../middleware/checkPermission.js';
 import { HttpError } from '../../services/authErrors.js';
+import { inventoryTransaction } from '../../services/inventory.service.js';
+import { checkMedicationInteractions } from '../../services/interactionCheck.service.js';
 import { medicineData } from '../prescription-scans/validation.js';
 import { id, patientScope, canEdit, loadResource, bodyFields } from './access.js';
 
@@ -29,7 +31,13 @@ router.get('/', patientScope, checkPermission('view_only'), async (req, res) => 
   res.json({ medications: await prisma.medication.findMany({ where, include: { doctor: true }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }), canEdit: canEdit(req) });
 });
 router.post('/', patientScope, checkPermission('full_access'), async (req, res) => {
-  res.status(201).json(await prisma.medication.create({ data: { ...await data(req.body, req.patientId), patientId: req.patientId, addedVia: 'manual' } }));
+  const medicationData = { ...await data(req.body, req.patientId), patientId: req.patientId, addedVia: 'manual' };
+  const medication = await inventoryTransaction(async (db) => {
+    const created = await db.medication.create({ data: medicationData });
+    await checkMedicationInteractions(created.id, db);
+    return created;
+  });
+  res.status(201).json(medication);
 });
 router.get('/:id', loadResource('medication'), checkPermission('view_only'), async (req, res) => {
   // DoseLog belongs to MedicationSchedule. Select a global recent slice first,

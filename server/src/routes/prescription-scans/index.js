@@ -3,6 +3,8 @@ import prisma from '../../prismaClient.js';
 import verifyJWT from '../../middleware/verifyJWT.js';
 import checkPermission from '../../middleware/checkPermission.js';
 import { HttpError } from '../../services/authErrors.js';
+import { inventoryTransaction } from '../../services/inventory.service.js';
+import { checkMedicationInteractions } from '../../services/interactionCheck.service.js';
 import { storage } from './storage.js';
 import { confirmData, medicineForms, trackingTypes } from './validation.js';
 
@@ -51,7 +53,7 @@ router.get('/:id', loadScan, checkPermission('view_only'), async (req, res) => {
 
 router.post('/:id/confirm', loadScan, checkPermission('full_access'), async (req, res) => {
   const reviewed = confirmData(req.body);
-  const result = await prisma.$transaction(async (db) => {
+  const result = await inventoryTransaction(async (db) => {
     // Atomic status claim serializes simultaneous confirms; failures roll it back.
     const claim = await db.prescriptionScan.updateMany({ where: { id: req.scan.id, scanStatus: 'needs_review' },
       data: { scanStatus: 'completed', reviewedAt: new Date() } });
@@ -65,6 +67,7 @@ router.post('/:id/confirm', loadScan, checkPermission('full_access'), async (req
     for (const medicine of reviewed.medicines) medications.push(await db.medication.create({ data: {
       ...medicine, patientId: req.patientId, doctorId: doctor.id, addedVia: 'ocr_scan',
     } }));
+    for (const medication of medications) await checkMedicationInteractions(medication.id, db);
     const scan = await db.prescriptionScan.update({ where: { id: req.scan.id }, data: { doctorId: doctor.id,
       medicationId: medications[0].id, ocrExtractedData: { ...req.scan.ocrExtractedData,
         confirmedMedicationIds: medications.map((m) => m.id),
