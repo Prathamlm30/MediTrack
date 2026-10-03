@@ -20,6 +20,7 @@ import Banner from '../../components/Banner.jsx';
 import Field from '../../components/Field.jsx';
 import TextInput from '../../components/TextInput.jsx';
 import PasswordInput from '../../components/PasswordInput.jsx';
+import WeeklyReports from '../caregiver/WeeklyReports.jsx';
 
 export function DashboardLogin({ onSuccess }) {
   const { setSession } = useAuth();
@@ -130,6 +131,7 @@ function DashboardData({ patientId }) {
           <span>Estimated runout: <time dateTime={row.estimatedRunoutDate}>{date(row.estimatedRunoutDate)}</time> · {days === 0 ? 'Today' : `In ${days} ${days === 1 ? 'day' : 'days'}`}</span></li>;
       })}
     </ul> : <p>Nothing is running low.</p>}</Card>
+    {patientId && <WeeklyReports key={`${patientId}:${data.permissionLevel}`} patientId={patientId} permissionLevel={data.permissionLevel} timezone={zone} />}
   </>;
 }
 
@@ -145,6 +147,11 @@ function PatientOverview() {
             <StatusPill status={row.permissionLevel} />
             {row.relationshipType && <p><span className="dashboard-muted">Relationship type: </span>{row.relationshipType}</p>}
             <Link to={`/patients/${row.patient.id}`} onClick={() => setActivePatientId(row.patient.id)} aria-label={`View dashboard for ${row.patient.fullName}`}>View dashboard</Link>
+            <div className="dashboard-patient-actions">
+              {['alerts_only', 'full_access'].includes(row.permissionLevel) && <Link to={`/alerts?patientId=${row.patient.id}`} aria-label={`View alerts for ${row.patient.fullName}`}>View alerts</Link>}
+              {['view_only', 'full_access'].includes(row.permissionLevel) ? <Link to={`/patients/${row.patient.id}#weekly-reports`} aria-label={`Weekly reports for ${row.patient.fullName}`}>Weekly reports</Link>
+                : <span className="dashboard-muted">Weekly reports restricted · Requires view-only or full access.</span>}
+            </div>
           </Card></li>)}</ul>
           : <EmptyState title="No active linked patients." action={<Link to="/relationships/invite">Invite someone</Link>}>An invitation is how a link starts.</EmptyState>}
   </>;

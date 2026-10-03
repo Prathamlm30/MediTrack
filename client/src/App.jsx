@@ -4,6 +4,8 @@ import Dashboard from './pages/dashboard/Dashboard.jsx';
 import Placeholder from './pages/Placeholder.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ActivePatientProvider } from './context/ActivePatientContext.jsx';
+import { SocketProvider } from './context/SocketContext.jsx';
+import Alerts from './pages/caregiver/Alerts.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppShell from './components/layout/AppShell.jsx';
@@ -19,7 +21,7 @@ import AdherencePage from './pages/adherence/AdherencePages.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
-  return <AuthProvider><ActivePatientProvider><ToastProvider><Routes>
+  return <AuthProvider><ActivePatientProvider><ToastProvider><SocketProvider><Routes>
     <Route element={<AuthShell />}>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<SignInPage key="login" />} />
@@ -44,6 +46,7 @@ export default function App() {
       <Route path="/prescription-scans" element={<UploadPrescription />} />
       <Route path="/prescription-scans/:id" element={<ReviewPrescription />} />
       <Route path="/patients" element={<Dashboard />} />
+      <Route path="/alerts" element={<Alerts />} />
       <Route path="/patients/:patientId" element={<Dashboard />} />
       <Route path="/relationships" element={<RelationshipsPage />} />
       <Route path="/relationships/invite" element={<InvitePage />} />
@@ -55,5 +58,5 @@ export default function App() {
       <Route path="/dashboard/caregiver" element={<Dashboard />} />
     </Route></Route>
     <Route path="*" element={<Placeholder title="Page not found" />} />
-  </Routes></ToastProvider></ActivePatientProvider></AuthProvider>;
+  </Routes></SocketProvider></ToastProvider></ActivePatientProvider></AuthProvider>;
 }

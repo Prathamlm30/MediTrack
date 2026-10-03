@@ -32,3 +32,4 @@
   .dashboard-dose > time { grid-column: 1 / -1; }
   .dashboard-dose-group { padding-left: var(--s3); }
 }
+.dashboard-patient-actions { display: flex; flex-wrap: wrap; gap: var(--s4); margin-top: var(--s4); }

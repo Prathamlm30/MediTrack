@@ -1,0 +1,12 @@
+.page, .groups { display: grid; gap: var(--s6); }
+.list { list-style: none; padding: 0; margin: 0; }
+.row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s4); padding: var(--s4) 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.row:last-child { border-bottom: 0; }
+.details { display: grid; gap: var(--s2); min-width: 0; flex: 1; }
+.details p { margin: 0; }
+.muted { color: var(--ink-2); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.summary { white-space: pre-wrap; overflow-wrap: anywhere; line-height: var(--lh-body); }
+.error { width: 100%; }
+.section { scroll-margin-top: var(--s6); }
+.level { color: var(--warn); font-weight: 600; }

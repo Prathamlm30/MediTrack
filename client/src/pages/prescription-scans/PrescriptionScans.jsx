@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
-import { API_BASE_URL, request } from '../../api/client.js';
+import { useSocket } from '../../context/SocketContext.jsx';
+import { request } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useActivePatient } from '../../context/ActivePatientContext.jsx';
 import PageHeader from '../../components/PageHeader.jsx';
@@ -58,11 +58,10 @@ export function ReviewPrescription() {
   return <Review key={id} id={id} />;
 }
 function Review({ id }) {
-  const { session } = useAuth();
+  const { socket, status: connection } = useSocket();
   const [scan, setScan] = useState(null);
   const [draft, setDraft] = useState(null);
   const [error, setError] = useState('');
-  const [connection, setConnection] = useState('Connecting for scan updates…');
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reload, setReload] = useState(0);
@@ -86,14 +85,12 @@ function Review({ id }) {
         }
       }
     }
-    const socket = io(API_BASE_URL, { auth: { token: session.accessToken } });
-    socket.on('connect', () => { setConnection('Connected for scan updates.'); void load(); });
-    socket.on('scan-complete', ({ scanId }) => { if (String(scanId) === id) void load(); });
-    socket.on('disconnect', () => setConnection('Connection lost. Reconnecting…'));
-    socket.on('connect_error', () => setConnection('Live updates unavailable. Use Refresh status to check the scan.'));
+    const completed = ({ scanId }) => { if (String(scanId) === id) void load(); };
+    socket?.on('connect', load);
+    socket?.on('scan-complete', completed);
     void load(); // Covers a completed scan opened later or a missed event.
-    return () => { live = false; socket.disconnect(); };
-  }, [id, session.accessToken, reload]);
+    return () => { live = false; socket?.off('connect', load); socket?.off('scan-complete', completed); };
+  }, [id, socket, reload]);
   const updateDoctor = (doctor) => { setReviewed(false); setDraft((d) => ({ ...d, doctor })); };
   const updateMedicine = (index, value) => { setReviewed(false); setDraft((d) => ({ ...d, medicines: d.medicines.map((m, i) => i === index ? value : m) })); };
   async function confirm(event) {

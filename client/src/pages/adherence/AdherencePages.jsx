@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useSocket } from '../../context/SocketContext.jsx';
 import { Link } from 'react-router-dom';
-import { request, API_BASE_URL } from '../../api/client.js';
+import { request } from '../../api/client.js';
 import { inventoryChanged } from '../../api/inventoryUpdates.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useActivePatient } from '../../context/ActivePatientContext.jsx';
@@ -94,19 +94,19 @@ export function AdherenceHeatmap({ data, timezone }) {
   })}</div><p>No data (N/D) · 0% (red) · 1–49% (amber) · 50–99% (pale green) · 100% (green)</p></>;
 }
 function Adherence({ suffix, revision, timezone }) {
-  const { session } = useAuth();
+  const { socket } = useSocket();
   const [liveRevision, setLiveRevision] = useState(0);
   const patientId = new URLSearchParams(suffix).get('patientId');
   useEffect(() => {
     const refresh = () => setLiveRevision((value) => value + 1);
-    const socket = io(API_BASE_URL, { auth: { token: session.accessToken } });
-    socket.on('stats-updated', (event) => {
+    const statsUpdated = (event) => {
       if (String(event?.patientId) === patientId) refresh();
-    });
-    socket.on('connect', refresh); // Also catch up after a reconnect gap.
+    };
+    socket?.on('stats-updated', statsUpdated);
+    socket?.on('connect', refresh); // Also catch up after a reconnect gap.
     const interval = setInterval(refresh, 30000);
-    return () => { clearInterval(interval); socket.disconnect(); };
-  }, [session.accessToken, patientId]);
+    return () => { clearInterval(interval); socket?.off('stats-updated', statsUpdated); socket?.off('connect', refresh); };
+  }, [socket, patientId]);
   const refreshKey = `${revision}:${liveRevision}`;
   const { data: heatmap, error: heatmapError } = useResource(`/api/adherence/heatmap${suffix}&months=3`, refreshKey);
   const { data: stats, error: statsError } = useResource(`/api/adherence/stats${suffix}`, refreshKey);
