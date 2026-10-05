@@ -14,8 +14,10 @@ export default function AppShell() {
   const { patients, activePatientId, setActivePatientId, loading, error, refreshPatients } = useActivePatient();
   const [failure, setFailure] = useState(null);
   const [menu, setMenu] = useState(false); const [busy, setBusy] = useState(false);
-  const navigate = useNavigate(); const { pathname } = useLocation(); const { patientId } = useParams();
-  const links = [['/dashboard', 'Dashboard'], ['/medications', 'Medications'], ['/doctors', 'Doctors'], ['/prescription-scans', 'Scan'], ...(patients.length ? [['/patients', 'Patients'], ['/alerts', 'Alerts']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
+  const navigate = useNavigate(); const { pathname, search } = useLocation(); const { patientId } = useParams();
+  const scopedPatientId = patientId || new URLSearchParams(search).get('patientId');
+  const ownView = (!scopedPatientId || String(scopedPatientId) === String(session.user.id)) && !pathname.startsWith('/patients') && !pathname.startsWith('/alerts') && pathname !== '/dashboard/caregiver';
+  const links = [['/dashboard', 'Dashboard'], ['/medications', 'Medications'], ['/doctors', 'Doctors'], ['/prescription-scans', 'Scan'], ...(ownView ? [['/chat', 'Chat']] : []), ...(patients.length ? [['/patients', 'Patients'], ['/alerts', 'Alerts']] : []), ['/relationships', 'Relationships'], ['/profile', 'Profile']];
   const title = pathname.startsWith('/alerts') ? 'Alerts' : pathname.startsWith('/today') ? 'Today' : pathname.startsWith('/dose-history') ? 'Dose history' : pathname.startsWith('/adherence') ? 'Adherence' : pathname.startsWith('/medications') ? 'Medications' : pathname.startsWith('/doctors') ? 'Doctors' : pathname.startsWith('/prescription-scans') ? 'Prescriptions' : pathname.startsWith('/patients') ? 'Patients' : pathname.startsWith('/relationships') ? 'Relationships' : pathname.startsWith('/settings') ? 'Settings' : pathname.startsWith('/profile') ? 'Profile' : 'Dashboard';
   async function toggleTheme() {
     setFailure(null); setBusy(true);
@@ -30,7 +32,7 @@ export default function AppShell() {
   return <div className={s.shell}><a href="#main-content" className={s.skip}>Skip to content</a><aside className={s.rail}>
     <NavLink to="/dashboard" className={s.wordmark}>MediTrack</NavLink>{navigation}{user}</aside>
     <div className={s.workspace}><header className={s.topbar}><Button className={s.menuButton} variant="ghost" onClick={() => setMenu(true)} aria-label="Open navigation menu"><Menu size={18} strokeWidth={1.5} aria-hidden="true" /></Button>
-      <span className={s.mobileTitle}>{title}</span>{patientId && <PatientSwitcher patients={patients} activePatientId={patientId || activePatientId} loading={loading} error={error} onRetry={refreshPatients}
+      <span className={s.mobileTitle}>{pathname.startsWith('/chat') ? 'Chat' : title}</span>{patientId && <PatientSwitcher patients={patients} activePatientId={patientId || activePatientId} loading={loading} error={error} onRetry={refreshPatients}
         onChange={(id) => { setActivePatientId(id); navigate(`/patients/${id}`); }} />}</header>
       <main id="main-content" className={s.content} tabIndex={-1}><Outlet />{failure && <ErrorState title="Could not complete the action" loading={busy} onRetry={failure.retry}>{failure.message}</ErrorState>}</main></div>
     <nav className={s.bottom} aria-label="Mobile navigation">{links.filter(([path]) => ['/dashboard', '/alerts', '/profile'].includes(path)).map(([path, label]) => <NavLink key={path} to={path}>{label}</NavLink>)}</nav>

@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { ActivePatientProvider } from './context/ActivePatientContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
 import Alerts from './pages/caregiver/Alerts.jsx';
+import Chat from './pages/chat/Chat.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppShell from './components/layout/AppShell.jsx';
@@ -32,6 +33,8 @@ export default function App() {
       <Route path="/invitations/:token" element={<InvitationPage />} />
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
+      <Route path="/chat" element={<Chat />} />
+      <Route path="/chat/:conversationId" element={<Chat />} />
       <Route path="/medications" element={<MedicationList />} />
       <Route path="/medications/add" element={<MedicationEdit />} />
       <Route path="/medications/:id" element={<MedicationDetail />} />

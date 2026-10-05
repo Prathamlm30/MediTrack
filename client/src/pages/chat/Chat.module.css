@@ -1,0 +1,10 @@
+.page, .composer { display: grid; gap: var(--s6); min-width: 0; }
+.conversations { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s6); padding: 0; list-style: none; }
+.conversations a[aria-current='page'] { font-weight: 700; text-decoration-thickness: 2px; }
+.messages { display: grid; gap: var(--s4); padding: 0; list-style: none; }
+.messages li { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-card); overflow-wrap: anywhere; min-width: 0; }
+.messages strong { display: block; margin-bottom: var(--s2); }
+.user { background: var(--paper-sunk); }
+.messages .ai { background: var(--paper); border-left: var(--s1) solid var(--brand); }
+.disclaimer { border-top: 1px solid var(--line); padding-top: var(--s3); margin: var(--s4) 0 0; color: var(--ink-2); font-size: var(--t-small); }
+.composer > button { justify-self: start; }

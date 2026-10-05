@@ -10,12 +10,14 @@ import MedicationFields from './MedicationFields.jsx';
 import { blankMedicine } from './medicineForm.js';
 import ScheduleSection from './ScheduleSection.jsx';
 import InventorySection from './InventorySection.jsx';
+import Insights from '../insights/Insights.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { usePatientScope, useResource, ManagementLinks, Details } from './Management.jsx';
 import s from './Management.module.css';
 
 const statuses = ['active', 'completed', 'discontinued'];
 export function MedicationList() {
-  const { suffix, selector } = usePatientScope();
+  const { patientId, suffix, selector } = usePatientScope();
   const [status, setStatus] = useState('active');
   const [revision, setRevision] = useState(0);
   const { data, error } = useResource(`/api/medications${suffix}${status ? `&status=${status}` : ''}`, revision);
@@ -23,6 +25,7 @@ export function MedicationList() {
     <div className={s.fields}>{selector}<Field label="Status"><Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map((v) => <option key={v}>{v}</option>)}</Select></Field></div>
     {error ? <Banner tone="danger">{error} <Button onClick={() => setRevision((v) => v + 1)}>Retry</Button></Banner> : !data ? <p role="status">Loading medicines…</p> : <>
       {data.canEdit && <Link to={`/medications/add${suffix}`}>Add medication</Link>}
+      <Insights patientId={patientId} permissionLevel={data.canEdit ? 'full_access' : 'view_only'} medicationIds={data.medications.map((m) => m.id)} interactionsOnly revision={revision} />
       {!data.medications.length && <p>No medications match this status.</p>}
       <ul className={s.list}>{data.medications.map((m) => <li className={s.card} key={m.id}><h2><Link to={`/medications/${m.id}${suffix}`}>{m.medicineName}</Link></h2><p>{m.dosageAmount} {m.dosageUnit} · {m.frequencyText}</p><p>{m.status} · {m.doctor?.doctorName || 'No doctor assigned'}</p>{data.canEdit && <Link to={`/medications/${m.id}/edit${suffix}`}>Edit medication</Link>}</li>)}</ul>
     </>}</div>;
@@ -77,6 +80,7 @@ export function MedicationDetail() {
   return <Detail key={id} id={id} />;
 }
 function Detail({ id }) {
+  const { session } = useAuth();
   const [revision, setRevision] = useState(0);
   const { data: m, error } = useResource(`/api/medications/${id}`, revision);
   const [failure, setFailure] = useState('');
@@ -91,6 +95,8 @@ function Detail({ id }) {
   return <div className={s.page}><PageHeader title={m?.medicineName || 'Medication detail'} /><ManagementLinks suffix={suffix} />
     {(error || failure) && <Banner tone="danger">{error || failure} <Button onClick={() => setRevision((v) => v + 1)}>Refresh</Button></Banner>}
     {!m ? !error && <p role="status">Loading medication…</p> : <>
+      <Insights patientId={m.patientId} permissionLevel={m.canEdit ? 'full_access' : 'view_only'} medicationIds={[m.id]} interactionsOnly revision={revision} />
+      {m.patientId === session.user.id && <Link to={`/chat?relatedMedicationId=${m.id}`}>Ask about this medication</Link>}
       <section className={s.card}><h2>Medication</h2><Details entries={[
         ['Generic name', m.genericName], ['Form', m.medicineForm], ['Tracking', m.trackingType], ['Dose', `${m.dosageAmount} ${m.dosageUnit}`], ['Frequency', m.frequencyText], ['Instructions', m.instructions], ['Start date', m.startDate.slice(0, 10)], ['End date', m.endDate?.slice(0, 10)], ['Status', m.status], ['Added via', m.addedVia], ['Doctor', m.doctor?.doctorName],
       ]} />{m.canEdit && <div className={s.actions}><Link to={`/medications/${id}/edit${suffix}`}>Edit medication</Link><Button variant="secondary" disabled={m.status === 'discontinued'} loading={busy} onClick={remove}>Discontinue medication</Button></div>}</section>

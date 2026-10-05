@@ -21,6 +21,7 @@ import Field from '../../components/Field.jsx';
 import TextInput from '../../components/TextInput.jsx';
 import PasswordInput from '../../components/PasswordInput.jsx';
 import WeeklyReports from '../caregiver/WeeklyReports.jsx';
+import Insights from '../insights/Insights.jsx';
 
 export function DashboardLogin({ onSuccess }) {
   const { setSession } = useAuth();
@@ -131,6 +132,7 @@ function DashboardData({ patientId }) {
           <span>Estimated runout: <time dateTime={row.estimatedRunoutDate}>{date(row.estimatedRunoutDate)}</time> · {days === 0 ? 'Today' : `In ${days} ${days === 1 ? 'day' : 'days'}`}</span></li>;
       })}
     </ul> : <p>Nothing is running low.</p>}</Card>
+    <Insights patientId={data.patient.id} permissionLevel={data.permissionLevel} revision={revision} />
     {patientId && <WeeklyReports key={`${patientId}:${data.permissionLevel}`} patientId={patientId} permissionLevel={data.permissionLevel} timezone={zone} />}
   </>;
 }

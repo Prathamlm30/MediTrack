@@ -1,0 +1,7 @@
+.section { min-width: 0; scroll-margin-top: var(--s6); }
+.content { display: grid; gap: var(--s4); overflow-wrap: anywhere; }
+.content h3 { margin: 0 0 var(--s2); font-size: var(--t-body-lg); }
+.content p { margin: var(--s2) 0; }
+.adherence { border-top: 1px solid var(--line); padding-top: var(--s4); }
+.muted, .notice { color: var(--ink-2); font-size: var(--t-small); }
+.notice:empty { display: none; }
