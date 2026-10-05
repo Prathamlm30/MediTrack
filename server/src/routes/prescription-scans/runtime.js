@@ -33,7 +33,7 @@ export function installScanRuntime(server) {
         try {
           const response = await fetch(new URL('/extract', process.env.OCR_SERVICE_URL || 'http://127.0.0.1:8001'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: storage.readUrl(scan.imageUrl) }), signal: AbortSignal.timeout(120000),
+            body: JSON.stringify({ imageUrl: storage.readUrl(scan.imageUrl) }), signal: AbortSignal.timeout(240000),
           });
           if (!response.ok) throw new Error(`OCR HTTP ${response.status}`);
           const data = validateExtraction(await response.json());
