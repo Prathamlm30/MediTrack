@@ -133,6 +133,7 @@ test('Phase 5 real CRUD, ownership, caregiver permissions, joins and provenance'
       await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
       await prisma.doctor.deleteMany({ where: { patientId: { in: ids } } });
       await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });
+      await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
       await prisma.user.deleteMany({ where: { id: { in: ids } } });
     }
     await prisma.$disconnect();

@@ -3,6 +3,7 @@ import prisma from '../prismaClient.js';
 import verifyJWT from '../middleware/verifyJWT.js';
 import { body } from '../middleware/validation.js';
 import { HttpError } from '../services/authErrors.js';
+import { recordAudit } from '../services/audit.service.js';
 
 // Only identity information is needed here, never credentials or health/profile data.
 export const relationshipUsers = {
@@ -202,16 +203,30 @@ router.patch('/:linkId/permissions', async (req, res) => {
     throw new HttpError(400, 'Invalid permissionLevel.');
   }
   if ('status' in data && data.status !== 'revoked') throw new HttpError(400, 'Only revocation is supported.');
-  const link = await prisma.caregiverPatientLink.findUnique({ where: { id } });
-  if (!link) throw new HttpError(404, 'Relationship not found.');
-  if (link.patientId !== req.user.id) throw new HttpError(403, 'Only the patient may manage this relationship.');
-  const relationship = await prisma.caregiverPatientLink.update({
-    where: { id, patientId: req.user.id },
-    data: 'permissionLevel' in data ? { permissionLevel: data.permissionLevel } : {
-      status: 'revoked', revokedAt: link.revokedAt || new Date(),
-    },
-    include: relationshipUsers,
-  });
+  let relationship;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      relationship = await prisma.$transaction(async (tx) => {
+        const link = await tx.caregiverPatientLink.findUnique({ where: { id } });
+        if (!link) throw new HttpError(404, 'Relationship not found.');
+        if (link.patientId !== req.user.id) throw new HttpError(403, 'Only the patient may manage this relationship.');
+        const updated = await tx.caregiverPatientLink.update({
+          where: { id, patientId: req.user.id },
+          data: 'permissionLevel' in data ? { permissionLevel: data.permissionLevel } : {
+            status: 'revoked', revokedAt: link.revokedAt || new Date(),
+          }, include: relationshipUsers,
+        });
+        await recordAudit({ actorUserId: req.user.id, actionType: 'permission_change', subjectPatientId: link.patientId,
+          entityId: link.id, details: { route: '/api/relationships/:linkId/permissions', method: 'PATCH',
+            permissionLevel: updated.permissionLevel, previousPermissionLevel: link.permissionLevel,
+            newPermissionLevel: updated.permissionLevel, previousStatus: link.status, newStatus: updated.status } }, { tx });
+        return updated;
+      }, { isolationLevel: 'Serializable' });
+      break;
+    } catch (error) {
+      if (error.code !== 'P2034' || attempt === 2) throw error;
+    }
+  }
   res.json({ relationship: withPerspective(relationship, req.user.id) });
 });
 

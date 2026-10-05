@@ -114,6 +114,7 @@ test('Phase 1 local HTTP sequence and Google account resolution', async () => {
     await new Promise((resolve) => smtp.close(resolve));
     for (const id of ids) await revokeSession(id);
     await prisma.userPreference.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     redis.disconnect(); await prisma.$disconnect();
   }

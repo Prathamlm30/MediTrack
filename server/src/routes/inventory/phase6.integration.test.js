@@ -142,6 +142,7 @@ test('Phase 6 real database, API permissions, generation, inventory concurrency 
     await prisma.medicationSchedule.deleteMany({ where: { medication: { patientId: { in: ids } } } });
     await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.$disconnect();
   }

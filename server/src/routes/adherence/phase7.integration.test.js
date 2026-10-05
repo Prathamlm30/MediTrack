@@ -214,6 +214,7 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
     await prisma.medicationSchedule.deleteMany({ where: { medication: { patientId: { in: ids } } } });
     await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.$disconnect();
   }

@@ -185,6 +185,7 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
     await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.userPreference.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.$disconnect();
   }

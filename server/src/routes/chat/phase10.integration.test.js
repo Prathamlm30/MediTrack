@@ -209,6 +209,7 @@ test('Phase 10 safety boundaries, real stored rows, flags and weekly cache', { t
     await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.doctor.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await prisma.$disconnect();
   }

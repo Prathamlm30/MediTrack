@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import { HttpError } from '../services/authErrors.js';
+import { recordAudit } from '../services/audit.service.js';
 
 const allowed = {
   view_only: ['view_only', 'full_access'],
@@ -28,6 +29,20 @@ export default function checkPermission(requiredLevel) {
     });
     if (!link) throw new HttpError(403, `Insufficient permission: ${requiredLevel} required.`);
     req.caregiverPatientLink = link;
+    // Aggregated feeds pass a small scoped request; res.req retains the real
+    // HTTP route/method, including for each patient in those feeds.
+    const source = req.method ? req : res.req || req;
+    if (['GET', 'HEAD'].includes(source.method)) {
+      const base = source.baseUrl || '/permission-check';
+      const route = base + (typeof source.route?.path === 'string' ? source.route.path : '');
+      // Inventory/schedules mount at /api, so baseUrl alone would merge them.
+      // Aggregate caregiver endpoints also have distinct polling groups.
+      const routeGroup = /\/inventory(?:\/|$)/.test(route) ? '/api/inventory'
+        : /\/schedules(?:\/|$)/.test(route) ? '/api/schedules'
+          : base === '/api/caregiver' ? route : base;
+      await recordAudit({ actorUserId: req.user.id, actionType: 'caregiver_read', subjectPatientId: patientId,
+        details: { route, routeGroup, method: source.method, patientId, permissionLevel: link.permissionLevel } });
+    }
     next();
   };
 }

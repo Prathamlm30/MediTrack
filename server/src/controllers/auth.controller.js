@@ -1,6 +1,7 @@
 import * as auth from '../services/auth.service.js';
 import * as validate from '../middleware/validation.js';
 import { revokeSession } from '../services/token.service.js';
+import { recordAudit } from '../services/audit.service.js';
 
 export async function register(req, res) {
   const data = validate.body(req);
@@ -10,10 +11,15 @@ export async function register(req, res) {
 }
 export async function login(req, res) {
   const data = validate.body(req);
-  res.json(await auth.login(validate.email(data.email), validate.password(data.password)));
+  const session = await auth.login(validate.email(data.email), validate.password(data.password));
+  await recordAudit({ actorUserId: session.user.id, actionType: 'login_local', details: { route: '/api/auth/login', method: 'POST' } });
+  res.json(session);
 }
 export async function google(req, res) {
-  res.json(await auth.googleLogin(validate.text(validate.body(req).idToken, 'idToken', 10000)));
+  const session = await auth.googleLogin(validate.text(validate.body(req).idToken, 'idToken', 10000));
+  // All three Google resolution branches converge here after session success.
+  await recordAudit({ actorUserId: session.user.id, actionType: 'login_google', details: { route: '/api/auth/google', method: 'POST' } });
+  res.json(session);
 }
 export async function refresh(req, res) {
   res.json(await auth.refresh(validate.text(validate.body(req).refreshToken, 'refreshToken', 4096)));

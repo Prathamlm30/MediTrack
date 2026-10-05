@@ -220,6 +220,7 @@ test('Phase 2: reciprocal roles, invitation lifecycle, atomic accept, permission
     await prisma.caregiverPatientLink.deleteMany({ where: { OR: [{ patientId: { in: ownIds } }, { caregiverId: { in: ownIds } }] } });
     await prisma.invitation.deleteMany({ where: { inviterUserId: { in: ownIds } } });
     await prisma.userPreference.deleteMany({ where: { userId: { in: ownIds } } });
+    await prisma.auditLog.deleteMany({ where: { userId: { in: ownIds } } });
     await prisma.user.deleteMany({ where: { id: { in: ownIds } } });
     redis.disconnect(); await prisma.$disconnect();
   }

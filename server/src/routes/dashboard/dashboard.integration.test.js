@@ -121,6 +121,7 @@ test('Phase 3: live scoped dashboards, permission filtering and multiple patient
         prisma.medicationSchedule.deleteMany({ where: { medication: { patientId: { in: ownIds } } } }),
         prisma.medication.deleteMany({ where: { patientId: { in: ownIds } } }),
         prisma.userPreference.deleteMany({ where: { userId: { in: ownIds } } }),
+        prisma.auditLog.deleteMany({ where: { userId: { in: ownIds } } }),
         prisma.user.deleteMany({ where: { id: { in: ownIds } } }),
       ]);
     }

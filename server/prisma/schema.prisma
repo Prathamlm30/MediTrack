@@ -200,7 +200,8 @@ model User {
   aiInsights                AiInsight[]
   interactionFlags          MedicationInteractionFlag[]
   preferences               UserPreference?
-  auditLogs                 AuditLog[]
+  auditLogs                 AuditLog[] @relation("AuditActor")
+  subjectAuditLogs          AuditLog[] @relation("AuditSubject")
 
   @@map("users")
 }
@@ -529,6 +530,8 @@ model UserPreference {
 }
 
 model AuditLog {
+  subjectPatientId Int?
+  details          Json?
   id         Int      @id @default(autoincrement())
   userId     Int
   actionType String
@@ -537,7 +540,10 @@ model AuditLog {
   ipAddress  String?
   timestamp  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation("AuditActor", fields: [userId], references: [id])
+  subjectPatient User? @relation("AuditSubject", fields: [subjectPatientId], references: [id], onDelete: SetNull)
 
+  @@index([subjectPatientId, timestamp])
+  @@index([userId, timestamp])
   @@map("audit_logs")
 }
