@@ -8,6 +8,7 @@ import { inventoryTransaction } from '../../services/inventory.service.js';
 import { id, loadResource, bodyFields } from '../medications/access.js';
 import { scheduleData } from './validation.js';
 import { generateSchedules } from './gemini.js';
+import { ensureScheduleDoseLog } from '../../jobs/doseLogJob.js';
 
 const router = Router();
 router.use(['/medications/:id/schedules', '/schedules/:id'], verifyJWT, (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -34,13 +35,24 @@ router.post('/medications/:id/schedules/generate', loadMedication, checkPermissi
   const created = await inventoryTransaction(async (tx) => {
     if (await tx.medicationSchedule.count({ where: { medicationId: req.record.id, isActive: true } })) throw new HttpError(409, 'Active schedules already exist.');
     await tx.medicationSchedule.createMany({ data: rows.map((row) => ({ ...row, medicationId: req.record.id })) });
-    return tx.medicationSchedule.findMany({ where: { medicationId: req.record.id, isActive: true }, orderBy: { timeOfDay: 'asc' } });
+    const schedules = await tx.medicationSchedule.findMany({ where: { medicationId: req.record.id, isActive: true }, orderBy: { timeOfDay: 'asc' } });
+    for (const schedule of schedules) await ensureScheduleDoseLog(tx, schedule.id, { remainingOnly: true });
+    return schedules;
   });
+  for (const schedule of created) {
+    await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'schedule', id: schedule.id, action: 'created' });
+  }
   res.status(201).json(created);
 });
 router.post('/medications/:id/schedules', loadMedication, checkPermission('full_access'), async (req, res) => {
   bodyFields(req.body, ['timeOfDay', 'daysOfWeek', 'doseAmount', 'isTaperSchedule', 'taperDetails', 'isActive']);
-  res.status(201).json(await prisma.medicationSchedule.create({ data: { ...data(req.body, undefined, req.record), medicationId: req.record.id } }));
+  const created = await inventoryTransaction(async (tx) => {
+    const schedule = await tx.medicationSchedule.create({ data: { ...data(req.body, undefined, req.record), medicationId: req.record.id } });
+    await ensureScheduleDoseLog(tx, schedule.id, { remainingOnly: true });
+    return schedule;
+  });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'schedule', id: created.id, action: 'created' });
+  res.status(201).json(created);
 });
 router.get('/schedules/:id', loadSchedule, checkPermission('view_only'), (req, res) => {
   const { medication, ...row } = req.record;
@@ -48,11 +60,18 @@ router.get('/schedules/:id', loadSchedule, checkPermission('view_only'), (req, r
 });
 router.patch('/schedules/:id', loadSchedule, checkPermission('full_access'), async (req, res) => {
   bodyFields(req.body, ['timeOfDay', 'daysOfWeek', 'doseAmount', 'isTaperSchedule', 'taperDetails', 'isActive']);
-  res.json(await prisma.medicationSchedule.update({ where: { id: req.record.id }, data: data(req.body, req.record) }));
+  const updated = await inventoryTransaction(async (tx) => {
+    const schedule = await tx.medicationSchedule.update({ where: { id: req.record.id }, data: data(req.body, req.record) });
+    await ensureScheduleDoseLog(tx, schedule.id, { remainingOnly: true });
+    return schedule;
+  });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'schedule', id: updated.id, action: 'updated' });
+  res.json(updated);
 });
 router.delete('/schedules/:id', loadSchedule, checkPermission('full_access'), async (req, res) => {
   // Preserve historical DoseLog references; deleted schedules no longer consume stock.
   await prisma.medicationSchedule.update({ where: { id: req.record.id }, data: { isActive: false } });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'schedule', id: req.record.id, action: 'deleted' });
   res.sendStatus(204);
 });
 export default router;

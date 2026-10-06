@@ -190,7 +190,8 @@ model User {
   doseLogsLogged            DoseLog[]                   @relation("LoggedByUser")
   doseLogsPatient           DoseLog[]                   @relation("PatientDoseLogs")
   medicineInventory         MedicineInventory[]
-  notifications             Notification[]
+  notifications             Notification[] @relation("NotificationRecipient")
+  patientNotifications      Notification[] @relation("NotificationPatient")
   escalationAlertsPatient   EscalationAlert[]           @relation("PatientEscalations")
   escalationAlertsCaregiver EscalationAlert[]           @relation("CaregiverEscalations")
   adherenceStats            AdherenceStat[]
@@ -375,6 +376,7 @@ model Notification {
   id               Int                 @id @default(autoincrement())
   userId           Int
   relatedDoseLogId Int?
+  relatedPatientId Int?
   notificationType NotificationType
   channel          NotificationChannel
   title            String
@@ -383,9 +385,11 @@ model Notification {
   sentAt           DateTime            @default(now())
   readAt           DateTime?
 
-  user    User     @relation(fields: [userId], references: [id])
+  user    User     @relation("NotificationRecipient", fields: [userId], references: [id])
+  relatedPatient User? @relation("NotificationPatient", fields: [relatedPatientId], references: [id], onDelete: SetNull)
   doseLog DoseLog? @relation(fields: [relatedDoseLogId], references: [id])
 
+  @@index([userId, relatedPatientId])
   @@map("notifications")
 }
 

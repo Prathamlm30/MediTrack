@@ -3,7 +3,7 @@ import prisma from '../../prismaClient.js';
 import verifyJWT from '../../middleware/verifyJWT.js';
 import { storage } from './storage.js';
 import { validateExtraction } from './validation.js';
-import { escalationEmitters } from '../../sockets/index.js';
+import { escalationEmitters, dataChangeEmitters } from '../../sockets/index.js';
 
 // One Express process for the local demo. Processing rows are the durable queue;
 // restarting Express resumes outstanding scans without another upload.
@@ -33,7 +33,7 @@ export function installScanRuntime(server) {
         try {
           const response = await fetch(new URL('/extract', process.env.OCR_SERVICE_URL || 'http://127.0.0.1:8001'), {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageUrl: storage.readUrl(scan.imageUrl) }), signal: AbortSignal.timeout(240000),
+            body: JSON.stringify({ imageUrl: storage.readUrl(scan.imageUrl) }), signal: AbortSignal.timeout(Number(process.env.OCR_REQUEST_TIMEOUT_MS || 240000)),
           });
           if (!response.ok) throw new Error(`OCR HTTP ${response.status}`);
           const data = validateExtraction(await response.json());
@@ -59,7 +59,7 @@ export function installScanRuntime(server) {
   const interval = setInterval(kick, 2000);
   interval.unref();
   server.on('listening', kick);
-  return { kick, ...escalationEmitters(io), emitStatsUpdated(patientId, date) {
+  return { kick, ...escalationEmitters(io), ...dataChangeEmitters(io), emitStatsUpdated(patientId, date) {
     io.to(`user:${patientId}`).emit('stats-updated', { patientId, date });
   }, async close() {
     stopped = true; clearInterval(interval);

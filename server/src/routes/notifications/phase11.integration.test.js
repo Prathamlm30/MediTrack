@@ -10,6 +10,8 @@ import app from '../../app.js';
 import prisma from '../../prismaClient.js';
 import redis from '../../config/redis.js';
 import { issueTokens, revokeSession } from '../../services/token.service.js';
+import { deliverWeeklyReport } from '../../jobs/weeklyReportDelivery.js';
+import { backfillWeeklyNotificationPatients } from '../../../scripts/backfill-weekly-notification-patients.js';
 
 test('Phase 11 backend: durable inbox, audit trail and support delivery', async (t) => {
   const suffix = randomUUID();
@@ -121,6 +123,45 @@ test('Phase 11 backend: durable inbox, audit trail and support delivery', async 
       await prisma.caregiverPatientLink.update({ where: { id: link.id }, data: { permissionLevel: 'full_access' } }); await check(true);
       assert.ok(await prisma.notification.findUnique({ where: { id: notice.id } }));
       assert.ok((await inbox(patient)).notifications.some((row) => row.id === ownDose.id));
+    });
+
+    await t.test('weekly summaries require current view access, fail closed, and backfill only unambiguous patients', async () => {
+      const report = await prisma.weeklySummaryReport.create({ data: { patientId: patient.id, caregiverId: caregiver.id,
+        weekStartDate: new Date(), weekEndDate: new Date(), summaryText: `Weekly fixture ${suffix}` } });
+      await deliverWeeklyReport(report, caregiver);
+      const notice = await prisma.notification.findFirstOrThrow({ where: { userId: caregiver.id, notificationType: 'weekly_summary' } });
+      assert.equal(notice.relatedPatientId, patient.id);
+      const legacy = await notification(caregiver, 'weekly_summary', { message: report.summaryText });
+      const unknown = await notification(caregiver, 'weekly_summary');
+      const check = async (visible, count) => {
+        const result = await inbox(caregiver, '?type=weekly_summary&limit=1');
+        assert.equal(result.notifications.length, visible ? 1 : 0);
+        assert.equal(result.unreadCount, count);
+        assert.ok(!result.notifications.some((row) => row.id === unknown.id));
+      };
+      await check(true, 2); // existing escalation plus the referenced weekly row
+      await patch(`/api/notifications/${legacy.id}/read`, caregiver, {}, 404);
+      assert.deepEqual(await backfillWeeklyNotificationPatients(caregiver.id), { examined: 2, updated: 1, unresolved: 1 });
+      assert.equal((await prisma.notification.findUnique({ where: { id: legacy.id } })).relatedPatientId, patient.id);
+      await check(true, 3);
+      await prisma.caregiverPatientLink.update({ where: { id: link.id }, data: { status: 'revoked' } });
+      await check(false, 0);
+      await patch(`/api/notifications/${notice.id}/read`, caregiver, {}, 404);
+      await prisma.caregiverPatientLink.update({ where: { id: link.id }, data: { status: 'active', permissionLevel: 'alerts_only' } });
+      await check(false, 1);
+      await prisma.caregiverPatientLink.update({ where: { id: link.id }, data: { permissionLevel: 'view_only' } });
+      await check(true, 2);
+      await prisma.caregiverPatientLink.update({ where: { id: link.id }, data: { permissionLevel: 'full_access' } });
+      await check(true, 3);
+      await patch(`/api/notifications/${notice.id}/read`, caregiver, {});
+      await check(true, 2);
+      assert.equal(await prisma.notification.count({ where: { id: { in: [notice.id, legacy.id, unknown.id] } } }), 3);
+      // Same timestamp/text for two subjects must not guess a patient.
+      await prisma.weeklySummaryReport.create({ data: { patientId: stranger.id, caregiverId: caregiver.id,
+        weekStartDate: new Date(), weekEndDate: new Date(), summaryText: report.summaryText } });
+      const ambiguous = await notification(caregiver, 'weekly_summary', { message: report.summaryText });
+      await backfillWeeklyNotificationPatients(caregiver.id);
+      assert.equal((await prisma.notification.findUnique({ where: { id: ambiguous.id } })).relatedPatientId, null);
     });
 
     await t.test('successful local and all three Google login branches audit; failures do not', async () => {
@@ -272,6 +313,7 @@ test('Phase 11 backend: durable inbox, audit trail and support delivery', async 
     for (const id of ids) await revokeSession(id);
     await prisma.auditLog.deleteMany({ where: { userId: { in: ids } } });
     await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
+    await prisma.weeklySummaryReport.deleteMany({ where: { caregiverId: { in: ids } } });
     await prisma.escalationAlert.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.doseLog.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.medicationSchedule.deleteMany({ where: { medication: { patientId: { in: ids } } } });

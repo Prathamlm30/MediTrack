@@ -46,8 +46,7 @@ test('Phase 6 real database, API permissions, generation, inventory concurrency 
     }
     const med = await call('/medications', 'POST', { medicineName: 'Phase Six Test', medicineForm: 'tablet', trackingType: 'countable', dosageAmount: '500', dosageUnit: 'mg', frequencyText: 'twice daily after meals', startDate: '2026-01-01' }, 201);
     const path = `/medications/${med.id}`;
-    const live = process.env.PHASE6_REAL_GEMINI === '1';
-    if (!live) {
+    {
       process.env.GEMINI_API_KEY = 'test-only';
       globalThis.fetch = async (url, options) => {
         assert.ok(String(url).startsWith('https://generativelanguage.googleapis.com/'));
@@ -58,7 +57,7 @@ test('Phase 6 real database, API permissions, generation, inventory concurrency 
     const rows = await call(path + '/schedules/generate', 'POST', { frequencyText: 'twice daily after meals' }, 201);
     assert.equal(rows.length, 2);
     for (const row of rows) { assert.match(row.timeOfDay, /T\d{2}:\d{2}:00\.000Z$/); assert.equal(Number(row.doseAmount), 1); }
-    console.log(`${live ? 'REAL GEMINI' : 'Mock Gemini'} persisted times:`, rows.map((row) => row.timeOfDay.slice(11, 16)));
+    console.log('Mock Gemini persisted times:', rows.map((row) => row.timeOfDay.slice(11, 16)));
     assert.equal((await call(path + '/schedules')).length, 2);
     await call(path + '/schedules/generate', 'POST', { frequencyText: 'twice daily after meals' }, 409);
     await call(path + '/schedules', 'POST', { timeOfDay: '25:00', daysOfWeek: '1' }, 400);
@@ -127,7 +126,7 @@ test('Phase 6 real database, API permissions, generation, inventory concurrency 
     assert.deepEqual(JSON.parse(cli.stdout).errors, []);
     console.log('On-demand CLI verified.');
     await call(`/schedules/${rows[0].id}`, 'DELETE', undefined, 204);
-    if (!live) {
+    {
       generated = [{ timeOfDay: 'after meals', daysOfWeek: '0,1,2,3,4,5,6', doseAmount: 1 }];
       await call(path + '/schedules/generate', 'POST', { frequencyText: 'twice daily after meals' }, 502);
       assert.equal(await prisma.medicationSchedule.count({ where: { medicationId: med.id, isActive: true } }), 0);
@@ -139,6 +138,7 @@ test('Phase 6 real database, API permissions, generation, inventory concurrency 
     const ids = users.map((row) => row.id);
     await prisma.notification.deleteMany({ where: { userId: { in: ids } } });
     await prisma.medicineInventory.deleteMany({ where: { patientId: { in: ids } } });
+    await prisma.doseLog.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.medicationSchedule.deleteMany({ where: { medication: { patientId: { in: ids } } } });
     await prisma.medication.deleteMany({ where: { patientId: { in: ids } } });
     await prisma.caregiverPatientLink.deleteMany({ where: { patientId: { in: ids } } });

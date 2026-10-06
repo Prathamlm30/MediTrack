@@ -57,9 +57,10 @@ router.post('/dev/overdue-dose', devOnly, async (req, _res, next) => {
   req.patientId = req.schedule.medication.patientId;
   next();
 }, checkPermission('full_access'), async (req, res) => {
+  const scheduledDatetime = new Date(Date.now() - getGracePeriodMinutes() * 60000 - 1000);
   const dose = await prisma.doseLog.create({ data: {
     scheduleId: req.schedule.id, patientId: req.patientId, status: 'pending',
-    scheduledDatetime: new Date(Date.now() - getGracePeriodMinutes() * 60000 - 1000),
+    scheduledDatetime, createdAt: new Date(scheduledDatetime.getTime() - 1000),
     notes: 'Phase 8 development overdue-dose fixture',
   } });
   res.status(201).json(dose);

@@ -4,13 +4,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
+import { OAuth2Client } from 'google-auth-library';
 import prisma from '../prismaClient.js';
 import redis from '../config/redis.js';
 import app from '../app.js';
 import { resolveGoogleAccount } from '../services/auth.service.js';
 import { revokeSession } from '../services/token.service.js';
 
-test('Phase 1 local HTTP sequence and Google account resolution', async () => {
+test('Phase 1 local HTTP sequence and Google account resolution', async (t) => {
+  // The SDK fetches certificates even for a malformed token. Stub only that
+  // network boundary; the real verifier must still reject the invalid token.
+  t.mock.method(OAuth2Client.prototype, 'getFederatedSignonCertsAsync', async () => ({ certs: {} }));
   const suffix = randomUUID();
   const email = `phase1-${suffix}@example.com`;
   const googleEmail = `google-${suffix}@example.com`;
@@ -62,6 +66,8 @@ test('Phase 1 local HTTP sequence and Google account resolution', async () => {
     assert.ok(registered.user.preferences); assert.equal(registered.user.passwordHash, undefined);
     const stored = await prisma.user.findUnique({ where: { email } }); assert.match(stored.passwordHash, /^\$2b\$12\$/);
     const verification = actionToken('verify');
+    const verificationMail = mail.at(-1).replace(/=\n/g, '').replace(/=3D/g, '=');
+    assert.ok(verificationMail.includes(`${process.env.CLIENT_ORIGIN || 'http://localhost:5173'}/verify-email/${verification}`));
     await request('POST', '/api/auth/login', { email, password: 'Initial-password-42' }, null, 403);
     await request('GET', `/api/auth/verify-email/${verification}`);
     await request('GET', `/api/auth/verify-email/${verification}`, null, null, 400);

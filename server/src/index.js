@@ -43,7 +43,7 @@ try {
   app.locals.escalationJob = startEscalationJob(app.locals.scanRuntime);
   app.locals.weeklyReportJob = startWeeklyReportJob();
   app.locals.inventoryJob = startInventoryJob();
-  app.locals.adherenceJobs = [startDoseLogJob(), startAdherenceJob(), startWeeklyAdherenceJob()];
+  app.locals.adherenceJobs = [startDoseLogJob({ runtime: app.locals.scanRuntime }), startAdherenceJob(), startWeeklyAdherenceJob()];
   server.listen(port, host, () => {
     console.log(`MediTrack server listening at http://${host}:${port}`);
   });

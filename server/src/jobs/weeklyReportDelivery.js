@@ -13,7 +13,7 @@ export async function deliverWeeklyReport(report, caregiver) {
       // Persisting the inbox message and successful delivery is one operation.
       return await prisma.$transaction(async (tx) => {
         await tx.notification.create({ data: { userId: caregiver.id, notificationType: 'weekly_summary',
-          channel, title, message: report.summaryText, status: 'sent' } });
+          relatedPatientId: report.patientId, channel, title, message: report.summaryText, status: 'sent' } });
         return tx.weeklySummaryReport.update({ where: { id: report.id }, data: { sentStatus: 'sent', sentAt: new Date() } });
       });
     }

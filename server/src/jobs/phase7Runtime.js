@@ -4,6 +4,24 @@ import { pathToFileURL } from 'node:url';
 import prisma from '../prismaClient.js';
 import { dateKey, localParts, timezoneFor, patientDate } from './adherenceCalendar.js';
 
+// Run immediately on startup and every minute; share an in-flight run so startup
+// cannot overlap a tick. The generator resolves each patient's current local day.
+export function startCatchUpJob(name, run, { schedule = '* * * * *', ...options } = {}) {
+  let active;
+  let stopped = false;
+  const tick = () => {
+    if (stopped) return Promise.resolve();
+    if (!active) active = Promise.resolve().then(() => run(options))
+      .then((result) => { console.log(`${name}:`, result); return result; })
+      .catch((error) => { console.error(`${name} failed:`, error.code || error.message); })
+      .finally(() => { active = undefined; });
+    return active;
+  };
+  const job = cron.schedule(schedule, tick, { timezone: 'UTC', noOverlap: true, name });
+  const ready = tick();
+  return { ready, tick, async destroy() { stopped = true; await job.destroy(); await active; } };
+}
+
 export function startLocalJob(name, minute, run, mondayOnly = false) {
   return cron.schedule('* * * * *', async () => {
     try {

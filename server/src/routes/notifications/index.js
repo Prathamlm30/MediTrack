@@ -9,17 +9,23 @@ import { pagination, positiveId } from './pagination.js';
 const router = Router();
 const unread = { readAt: null, status: { not: 'read' } };
 const alertPermission = checkPermission('alerts_only');
+const viewPermission = checkPermission('view_only');
 router.use(verifyJWT, (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
 // A relational predicate applies before pagination/counting, including when the
 // cursor row belongs to another user or is no longer visible. Nothing is deleted.
 function visibleTo(userId) {
   return { userId, OR: [
+    { notificationType: 'weekly_summary', relatedPatient: { patientLinks: { some: {
+      caregiverId: userId, status: 'active', permissionLevel: { in: ['full_access', 'view_only'] },
+    } } } },
+    { notificationType: { not: 'weekly_summary' }, OR: [
     { relatedDoseLogId: null },
     { doseLog: { patientId: userId } },
     { doseLog: { patient: { patientLinks: { some: {
       caregiverId: userId, status: 'active', permissionLevel: { in: ['full_access', 'alerts_only'] },
     } } } } },
+    ] },
   ] };
 }
 
@@ -64,7 +70,10 @@ router.get('/', async (req, res) => {
     prisma.notification.count({ where: { AND: [visibility, unread] } }),
   ], { isolationLevel: 'RepeatableRead' });
   const page = rows.slice(0, limit);
-  for (const patientId of new Set(page.map((row) => row.doseLog?.patientId).filter((id) => id && id !== req.user.id))) {
+  for (const patientId of new Set(page.filter((row) => row.notificationType === 'weekly_summary').map((row) => row.relatedPatientId))) {
+    await viewPermission({ user: req.user, patientId }, res, () => {});
+  }
+  for (const patientId of new Set(page.filter((row) => row.notificationType !== 'weekly_summary').map((row) => row.doseLog?.patientId).filter((id) => id && id !== req.user.id))) {
     await alertPermission({ user: req.user, patientId }, res, () => {});
   }
   res.json({ notifications: page.map(({ doseLog, ...row }) => row),
@@ -98,7 +107,9 @@ router.patch('/:id/read', async (req, res) => {
   const where = { AND: [{ id }, visibleTo(req.user.id)] };
   const notification = await prisma.notification.findFirst({ where, include: { doseLog: { select: { patientId: true } } } });
   if (!notification) throw new HttpError(404, 'Notification not found.');
-  if (notification.doseLog && notification.doseLog.patientId !== req.user.id) {
+  if (notification.notificationType === 'weekly_summary') {
+    await viewPermission({ user: req.user, patientId: notification.relatedPatientId }, res, () => {});
+  } else if (notification.doseLog && notification.doseLog.patientId !== req.user.id) {
     await alertPermission({ user: req.user, patientId: notification.doseLog.patientId }, res, () => {});
   }
   await prisma.notification.updateMany({ where: { AND: [where, { readAt: null }] },

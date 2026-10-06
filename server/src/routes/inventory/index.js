@@ -30,6 +30,7 @@ router.post('/medications/:id/inventory', loadResource('medication'), checkPermi
     if (await tx.medicineInventory.count({ where: { medicationId: data.medicationId, patientId: data.patientId } })) throw new HttpError(409, 'Inventory is already set up.');
     return tx.medicineInventory.create({ data });
   });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'inventory', id: row.id, action: 'created' });
   res.status(201).json(row);
 });
 
@@ -43,6 +44,7 @@ router.patch('/medications/:id/inventory', loadResource('medication'), checkPerm
     if (!current) throw new HttpError(404, 'Inventory not set up.');
     return tx.medicineInventory.update({ where: { id: current.id }, data });
   });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'inventory', id: row.id, action: 'updated' });
   res.json(row);
 });
 

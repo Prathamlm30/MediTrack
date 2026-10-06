@@ -50,7 +50,11 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
     const today = patientDate(new Date(), patient.timezone);
     const med = await call('/medications', 'POST', { medicineName: 'Phase Seven Test', medicineForm: 'syrup', trackingType: 'volume_ml', dosageAmount: 5, dosageUnit: 'ml', frequencyText: 'daily', startDate: shiftDate(today, -30) }, 201);
     const medPath = `/medications/${med.id}`;
-    const schedule = await call(medPath + '/schedules', 'POST', { timeOfDay: '08:30', daysOfWeek: '0,1,2,3,4,5,6', doseAmount: 2.5 }, 201);
+    // Pre-existing schedule with a missed generation, so concurrent jobs (rather
+    // than the new schedule-write hook) must insert the single dose under test.
+    const schedule = await prisma.medicationSchedule.create({ data: { medicationId: med.id,
+      timeOfDay: new Date('1970-01-01T08:30:00Z'), daysOfWeek: '0,1,2,3,4,5,6', doseAmount: 2.5,
+      createdAt: new Date(shiftDate(today, -30)) } });
     const inventory = await call(medPath + '/inventory', 'POST', { quantityTotal: 20, refillThreshold: 2, refillAmount: 20 }, 201);
     const options = { patientId: patient.id, date: today };
     const generated = await Promise.all([runDoseLogJob(options), runDoseLogJob(options)]);
@@ -177,6 +181,7 @@ test('Phase 7 database/API atomicity, reruns, aggregation, permissions and CLI',
         { fromDate: secondDate, toDate: shiftDate(today, -1), doseAmount: 1 },
       ],
     }, 201, other);
+    await prisma.medicationSchedule.update({ where: { id: taperSchedule.id }, data: { createdAt: new Date(shiftDate(firstDate, -1)) } });
     await call(taperPath + '/inventory', 'POST', { quantityTotal: 20, refillThreshold: 2, refillAmount: 20 }, 201, other);
     for (const [date, remaining] of [[firstDate, 18], [secondDate, 17]]) {
       assert.deepEqual(await runDoseLogJob({ patientId: other.id, date }), { created: 1, existing: 0, errors: [] });

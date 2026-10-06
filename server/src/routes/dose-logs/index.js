@@ -35,7 +35,7 @@ for (const [name, job] of Object.entries({ generate: runDoseLogJob, aggregate: r
     bodyFields(req.body, ['patientId', 'date']);
     next();
   }, patientScope, checkPermission('full_access'), async (req, res) => {
-    const result = await job({ patientId: req.patientId, ...(req.body.date !== undefined && { date: dateKey(req.body.date) }) });
+    const result = await job({ patientId: req.patientId, runtime: req.app.locals.scanRuntime, ...(req.body.date !== undefined && { date: dateKey(req.body.date) }) });
     res.status(result.errors.length ? 500 : 200).json(result);
   });
 }
@@ -68,6 +68,7 @@ router.patch('/:id', loadResource('doseLog'), checkPermission('full_access'), as
   });
   // Emit only after commit, never from inside a retried transaction callback.
   req.app.locals.scanRuntime?.emitStatsUpdated(row.patientId, date);
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: row.patientId, resource: 'dose_log', id: row.id, action: 'updated' });
   res.json(row);
 });
 export default router;

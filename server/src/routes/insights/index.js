@@ -40,7 +40,10 @@ router.patch('/:id/dismiss', async (req, res, next) => {
   const isAdherence = req.insightModel === 'aiInsight';
   const row = req.insightRecord;
   if ((isAdherence && row.isDismissed) || (!isAdherence && row.acknowledged)) return res.json(row);
-  res.json(await prisma[req.insightModel].update({ where: { id: row.id }, data: isAdherence
-    ? { isDismissed: true, dismissedAt: new Date() } : { acknowledged: true, acknowledgedAt: new Date() } }));
+  const updated = await prisma[req.insightModel].update({ where: { id: row.id }, data: isAdherence
+    ? { isDismissed: true, dismissedAt: new Date() } : { acknowledged: true, acknowledgedAt: new Date() } });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'insight',
+    id: `${isAdherence ? 'adherence' : 'interaction'}-${row.id}`, action: 'updated' });
+  res.json(updated);
 });
 export default router;

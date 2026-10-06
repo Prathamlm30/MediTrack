@@ -20,6 +20,7 @@ export async function runEscalationJob({ now = new Date(), patientId, runtime } 
           escalationAlerts: true, schedule: { include: { medication: true } }, patient: true,
         } });
         if (!dose || dose.status !== 'pending' || dose.scheduledDatetime > cutoff ||
+            dose.createdAt > dose.scheduledDatetime ||
             !dose.patient.isActive || dose.schedule.medication.patientId !== dose.patientId) return [];
         const alerts = dose.escalationAlerts;
         const level1 = alerts.find((alert) => alert.escalationLevel === 1);

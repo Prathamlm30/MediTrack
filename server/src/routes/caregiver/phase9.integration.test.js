@@ -17,6 +17,19 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
   const users = [], sockets = [], schedules = [];
   let server, runtime, reportJob;
   const oldGrace = process.env.ESCALATION_GRACE_PERIOD_MINUTES;
+  const realFetch = globalThis.fetch, oldKey = process.env.GEMINI_API_KEY;
+  let providerFails = false;
+  process.env.GEMINI_API_KEY = 'test-only';
+  globalThis.fetch = async (url, options) => {
+    if (!String(url).startsWith('https://generativelanguage.googleapis.com/')) return realFetch(url, options);
+    if (providerFails) return new Response('{}', { status: 503 });
+    const data = JSON.parse(JSON.parse(options.body).contents[0].parts[0].text);
+    assert.equal(data.counts.total, data.doseLogs.length);
+    assert.equal(data.counts.missed, data.doseLogs.filter((row) => row.status === 'missed').length);
+    return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{
+      text: JSON.stringify({ summaryText: `${data.facts} Pending records remain uncertain.` }),
+    }] } }] });
+  };
   process.env.ESCALATION_GRACE_PERIOD_MINUTES = '1';
   try {
     for (const fullName of ['Phase 9 Patient A', 'Phase 9 Patient B', 'Phase 9 Caregiver', 'Phase 9 Stranger']) {
@@ -70,7 +83,7 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
     const now = new Date();
     for (const [i, patient] of [a, b].entries()) {
       await prisma.doseLog.create({ data: { patientId: patient.id, scheduleId: schedules[i].id,
-        scheduledDatetime: new Date(now.getTime() - 120000), status: 'pending' } });
+        scheduledDatetime: new Date(now.getTime() - 120000), createdAt: new Date(now.getTime() - 180000), status: 'pending' } });
       await runEscalationJob({ now, patientId: patient.id, runtime });
       await runEscalationJob({ now: new Date(now.getTime() + 61000), patientId: patient.id, runtime });
     }
@@ -102,7 +115,13 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
         missedCount: index === 0 ? 2 : 1, skippedCount: index === 0 ? 1 : 0, adherencePercentage: index === 0 ? 37.5 : 50 } });
     }
 
-    // Exercise the real cron runner and real Gemini with persisted fixture rows.
+    // A provider failure must remain a reported failure with no saved report.
+    providerFails = true;
+    const unavailable = await runWeeklyReportJob({ patientId: a.id, caregiverId: caregiver.id });
+    assert.match(unavailable.errors[0].error, /HTTP 503/);
+    assert.equal(await prisma.weeklySummaryReport.count({ where: { caregiverId: caregiver.id } }), 0);
+    providerFails = false;
+    // Real cron/database/delivery, deterministic Gemini transport.
     reportJob = startWeeklyReportJob({ schedule: '* * * * * *', patientId: a.id, caregiverId: caregiver.id });
     let reportA;
     for (let i = 0; i < 1200; i++) {
@@ -111,7 +130,7 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
       await delay(100);
     }
     await reportJob.destroy(); reportJob = undefined;
-    assert.ok(reportA, 'Real scheduled Gemini report must be delivered.');
+    assert.ok(reportA, 'Scheduled report using stubbed Gemini must be delivered.');
     const runs = await Promise.all([1, 2].map(() => call('/reports/weekly/jobs/run', caregiver, 200, { method: 'POST', body: '{}' })));
     assert.equal(runs.reduce((count, run) => count + run.created, 0), 1);
     assert.equal(runs.reduce((count, run) => count + run.sent, 0), 1);
@@ -160,7 +179,7 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
     process.env.NODE_ENV = 'production';
     try { await call('/reports/weekly/jobs/run', caregiver, 404, { method: 'POST', body: '{}' }); }
     finally { if (oldMode === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldMode; }
-    console.log('PASS real Gemini counts, archive isolation, automated delivery, retries, unsupported channels, and production trigger guard.');
+    console.log('PASS stubbed Gemini counts, provider failure, archive isolation, automated delivery, retries, unsupported channels, and production trigger guard.');
 
     await prisma.caregiverPatientLink.updateMany({ where: { patientId: a.id, caregiverId: caregiver.id }, data: { status: 'revoked' } });
     assert.deepEqual((await call('/caregiver/alerts-feed')).map((alert) => alert.patientId), [b.id]);
@@ -170,6 +189,8 @@ test('Phase 9 real database, multi-patient switching and shared Phase 8 live fee
     console.log('PASS active-link permissions, revocation and view-only alert exclusion.');
   } finally {
     await reportJob?.destroy();
+    globalThis.fetch = realFetch;
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = oldKey;
     for (const socket of sockets) socket.disconnect();
     await runtime?.close();
     if (server?.listening) await new Promise((resolve) => server.close(resolve));

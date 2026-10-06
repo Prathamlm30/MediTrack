@@ -24,6 +24,15 @@ test('patient calendar days handle offsets, DST and missing/invalid timezones', 
 test('Phase 3: live scoped dashboards, permission filtering and multiple patients', async () => {
   let fixtures, server;
   const ownIds = [];
+  const realFetch = globalThis.fetch, oldKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = 'test-only';
+  globalThis.fetch = async (url, options) => {
+    if (!String(url).startsWith('https://generativelanguage.googleapis.com/')) return realFetch(url, options);
+    const data = JSON.parse(JSON.parse(options.body).contents[0].parts[0].text).untrustedData;
+    assert.equal(data.days, 7);
+    assert.equal(data.total, Object.values(data.counts).reduce((sum, count) => sum + count, 0));
+    return Response.json({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: 'Review your recorded routine.' }] } }] });
+  };
   try {
     fixtures = await prisma.$transaction((db) => createDashboardFixtures(db, { password: 'Dashboard-test-password-42' }), { timeout: 30000 });
     const { patient, secondPatient, caregiver, links, schedules, medications } = fixtures;
@@ -111,6 +120,8 @@ test('Phase 3: live scoped dashboards, permission filtering and multiple patient
     console.log('PASS patient isolation, daily/refill windows, all permissions, live updates, read-only routes, and inactive links');
   } finally {
     if (server) await new Promise((resolve) => server.close(resolve));
+    globalThis.fetch = realFetch;
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = oldKey;
     if (ownIds.length) {
       await prisma.$transaction([
         prisma.aiInsight.deleteMany({ where: { patientId: { in: ownIds } } }),

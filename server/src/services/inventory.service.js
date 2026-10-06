@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../prismaClient.js';
 import { HttpError } from './authErrors.js';
+import { setTimeout as delay } from 'node:timers/promises';
 
 // Serializable retries protect read/modify/write operations across server processes.
 export async function inventoryTransaction(work) {
@@ -9,6 +10,9 @@ export async function inventoryTransaction(work) {
       return await prisma.$transaction(work, { isolationLevel: 'Serializable' });
     } catch (error) {
       if (error.code !== 'P2034' || attempt >= 4) throw error;
+      // Avoid exhausting all retries while the competing transaction is still
+      // committing. Keep the same five-attempt bound and retry only P2034.
+      await delay(100 * 2 ** attempt + Math.floor(Math.random() * 50));
     }
   }
 }

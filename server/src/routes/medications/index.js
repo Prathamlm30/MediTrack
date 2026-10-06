@@ -37,6 +37,7 @@ router.post('/', patientScope, checkPermission('full_access'), async (req, res) 
     await checkMedicationInteractions(created.id, db);
     return created;
   });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'medication', id: medication.id, action: 'created' });
   res.status(201).json(medication);
 });
 router.get('/:id', loadResource('medication'), checkPermission('view_only'), async (req, res) => {
@@ -53,9 +54,13 @@ router.get('/:id', loadResource('medication'), checkPermission('view_only'), asy
   res.json({ ...medication, doseLogs, aiInsights, canEdit: canEdit(req) });
 });
 router.patch('/:id', loadResource('medication'), checkPermission('full_access'), async (req, res) => {
-  res.json(await prisma.medication.update({ where: { id: req.record.id }, data: await data(req.body, req.patientId, req.record) }));
+  const medication = await prisma.medication.update({ where: { id: req.record.id }, data: await data(req.body, req.patientId, req.record) });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'medication', id: medication.id, action: 'updated' });
+  res.json(medication);
 });
 router.delete('/:id', loadResource('medication'), checkPermission('full_access'), async (req, res) => {
-  res.json(await prisma.medication.update({ where: { id: req.record.id }, data: { status: 'discontinued' } }));
+  const medication = await prisma.medication.update({ where: { id: req.record.id }, data: { status: 'discontinued' } });
+  await req.app.locals.scanRuntime?.emitDataChanged?.({ patientId: req.patientId, resource: 'medication', id: medication.id, action: 'deleted' });
+  res.json(medication);
 });
 export default router;
