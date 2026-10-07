@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import { useEffect, useState } from 'react';
 import { request } from '../../api/client.js';
 import { inventoryChanged, useInventoryRevision } from '../../api/inventoryUpdates.js';
@@ -27,17 +28,13 @@ function InventoryForm({ medication, inventory, saved, cancel }) {
 export default function InventorySection({ medication, compact = false }) {
   const revision = useInventoryRevision(medication.id);
   const [retry, setRetry] = useState(0);
-  const [state, setState] = useState({});
   const [editing, setEditing] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController(); setState({});
-    request(`/api/medications/${medication.id}/inventory`, { signal: controller.signal }).then((data) => { if (!controller.signal.aborted) setState({ data }); }).catch((err) => { if (!controller.signal.aborted) setState(err.status === 404 ? { missing: true } : { error: err.message }); });
-    return () => controller.abort();
-  }, [medication.id, revision, retry]);
+  useDataChanged(['inventory', 'dose_log', 'schedule', 'medication'], medication.patientId, () => setRetry((v) => v + 1));
+  const state = useResource(`/api/medications/${medication.id}/inventory`, `${revision}:${retry}`);
   const { data: notifications, error: notificationError } = useResource(`/api/medications/${medication.id}/inventory/notifications`, `${revision}:${retry}`);
   const unit = inventoryUnits[medication.trackingType];
   return <section className={s.card} aria-label={`Inventory for ${medication.medicineName}`}><h2>Medicine inventory{compact ? ` · ${medication.medicineName}` : ''}</h2>
-    {state.error ? <Banner tone="danger">{state.error} <Button onClick={() => setRetry((v) => v + 1)}>Retry inventory</Button></Banner> : state.missing ? <><p>Inventory not set up.</p>{medication.canEdit && !compact && <InventoryForm medication={medication} saved={() => setRetry((v) => v + 1)} />}</> : !state.data ? <p role="status">Refreshing inventory…</p> : <>
+    {state.error && state.status !== 404 && <Banner tone="danger">{state.error} <Button onClick={() => setRetry((v) => v + 1)}>Retry inventory</Button></Banner>}{state.status === 404 ? <><p>Inventory not set up.</p>{medication.canEdit && !compact && <InventoryForm medication={medication} saved={() => setRetry((v) => v + 1)} />}</> : !state.data ? !state.error && <p role="status">Loading inventory…</p> : <>
       <p aria-live="polite"><strong>{state.data.quantityRemaining} {unit} remaining</strong> of {state.data.quantityTotal} {unit}</p>
       <p>Estimated runout: {state.data.estimatedRunoutDate?.slice(0, 10) || 'Not yet estimated'}</p>
       {Number(state.data.quantityRemaining) < Number(state.data.refillThreshold) && <Banner tone="warning">Stock is below the refill threshold.</Banner>}

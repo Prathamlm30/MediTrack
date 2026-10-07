@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import { useEffect, useState } from 'react';
 import { useSocket } from '../../context/SocketContext.jsx';
 import { Link } from 'react-router-dom';
@@ -34,6 +35,7 @@ function ScopedView({ patientId, suffix, view, canEdit, self }) {
   const [revision, setRevision] = useState(0);
   const { data: medications, error } = useResource(`/api/medications${suffix}`, revision);
   const { data: dashboard, error: timezoneError } = useResource(self ? '/api/dashboard/patient' : `/api/dashboard/caregiver/${patientId}`, revision);
+  useDataChanged(['dose_log', 'medication', 'schedule', 'inventory'], patientId, () => setRevision((v) => v + 1));
   return <><Button variant="secondary" onClick={() => setRevision((v) => v + 1)}>Refresh data</Button>{error && <Banner tone="danger">{error}</Banner>}{timezoneError && <Banner tone="danger">{timezoneError}</Banner>}
     {dashboard?.timezone && <p>Dates and times use {dashboard.timezone}.</p>}
     {view === 'today' ? <Today suffix={suffix} medications={medications} canEdit={canEdit && medications?.canEdit} revision={revision} timezone={dashboard?.timezone} /> : view === 'history' ? <History suffix={suffix} medications={medications} revision={revision} timezone={dashboard?.timezone} /> : dashboard && <Adherence suffix={suffix} revision={revision} timezone={dashboard.timezone} />}
@@ -110,6 +112,6 @@ function Adherence({ suffix, revision, timezone }) {
   const refreshKey = `${revision}:${liveRevision}`;
   const { data: heatmap, error: heatmapError } = useResource(`/api/adherence/heatmap${suffix}&months=3`, refreshKey);
   const { data: stats, error: statsError } = useResource(`/api/adherence/stats${suffix}`, refreshKey);
-  return <><section className={s.card}><h2>Adherence streaks & stats</h2><p>Stats update when doses are logged and refresh automatically every 30 seconds.</p>{statsError ? <Banner tone="danger">{statsError}</Banner> : !stats ? <p>Loading stats…</p> : <Details entries={[["Current streak", `${stats.currentStreak} days`], ['Best streak', `${stats.bestStreak} days`], ['Rolling 7 days', `${stats.rolling7DayPercentage}%`], ['Rolling 30 days', `${stats.rolling30DayPercentage}%`]]} />}</section>
-    <section className={s.card}><h2>Adherence calendar heatmap</h2>{heatmapError ? <Banner tone="danger">{heatmapError}</Banner> : !heatmap ? <p>Loading calendar…</p> : <AdherenceHeatmap data={heatmap} timezone={timezone} />}</section></>;
+  return <><section className={s.card}><h2>Adherence streaks & stats</h2><p>Stats update when doses are logged and refresh automatically every 30 seconds.</p>{statsError && <Banner tone="danger">{statsError}</Banner>}{!stats ? !statsError && <p>Loading stats…</p> : <Details entries={[["Current streak", `${stats.currentStreak} days`], ['Best streak', `${stats.bestStreak} days`], ['Rolling 7 days', `${stats.rolling7DayPercentage}%`], ['Rolling 30 days', `${stats.rolling30DayPercentage}%`]]} />}</section>
+    <section className={s.card}><h2>Adherence calendar heatmap</h2>{heatmapError && <Banner tone="danger">{heatmapError}</Banner>}{!heatmap ? !heatmapError && <p>Loading calendar…</p> : <AdherenceHeatmap data={heatmap} timezone={timezone} />}</section></>;
 }

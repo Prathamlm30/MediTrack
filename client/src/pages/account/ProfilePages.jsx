@@ -108,12 +108,14 @@ function Settings({ user }) {
   return <div className={s.stack}><PageHeader title="Account settings" />
     <Card title="Sign-in details"><dl className={s.details}><Detail label="Email" value={user.email} /><Detail label="Sign-in method" value={signInMethod(user)} /><Detail label="Email verification" value={user.emailVerified ? 'Verified' : 'Not verified'} /></dl></Card>
     {user.hasPassword && <Card title="Password reset"><div className={s.stack}><Banner>Changing your password is done through an emailed reset link. Completing the reset signs out any existing session.</Banner><Link to="/forgot-password">Request a password reset</Link></div></Card>}
+    <div className={s.actions}><Link to="/settings/activity">Account activity</Link><Link to="/support">Contact support</Link></div>
     <AccountLinks /></div>;
 }
 
 function Preferences({ user }) {
   const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const initial = { preferredNotificationChannel: user.preferences?.preferredNotificationChannel || 'email', language: user.preferences?.language || 'en', timezone: user.preferences?.timezone || browserZone };
+  const unavailableChannel = ['push', 'sms'].includes(user.preferences?.preferredNotificationChannel);
+  const initial = { preferredNotificationChannel: unavailableChannel ? '' : user.preferences?.preferredNotificationChannel || 'email', language: user.preferences?.language || 'en', timezone: user.preferences?.timezone || browserZone };
   const [values, setValues] = useState(initial); const [saved, setSaved] = useState(initial);
   const [themeAttempt, setThemeAttempt] = useState(null);
   const [busy, setBusy] = useState(false); const [themeBusy, setThemeBusy] = useState(false); const [error, setError] = useState(''); const [themeError, setThemeError] = useState('');
@@ -128,7 +130,7 @@ function Preferences({ user }) {
     catch (err) { setThemeError(err.message); } finally { setThemeBusy(false); }
   }
   async function submit(event) {
-    event.preventDefault(); if (busy || themeBusy || !dirty) return;
+    event.preventDefault(); if (busy || themeBusy || !dirty || !values.preferredNotificationChannel) return;
     setBusy(true); setError('');
     try {
       const { preferences } = await updatePreferences({ preferredNotificationChannel: values.preferredNotificationChannel, language: values.language.trim(), timezone: values.timezone });
@@ -137,12 +139,13 @@ function Preferences({ user }) {
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   }
   return <div className={`${s.stack} ${s.editor}`}><PageHeader title="Notification preferences" />
+    {unavailableChannel && <Banner>Your saved channel is not available yet. Choose In the app or Email before saving.</Banner>}
     <Card><form className={s.form} onSubmit={submit}>
-      <Field label="Preferred notification channel"><Select value={values.preferredNotificationChannel} onChange={change('preferredNotificationChannel')} disabled={busy || themeBusy}><option value="email">Email</option><option value="push">Push</option><option value="sms">SMS</option><option value="in_app">In app</option></Select></Field>
+      <Field label="Preferred notification channel" help="Email sends weekly caregiver reports. Reminders and alerts appear in the app."><Select value={values.preferredNotificationChannel} onChange={change('preferredNotificationChannel')} disabled={busy || themeBusy}><option value="" disabled>Choose a channel</option><option value="in_app">In the app</option><option value="email">Email</option></Select></Field>
       <Field label="Language" required help="Save your preferred language code, such as en or hi. The interface is currently in English."><TextInput maxLength={100} value={values.language} onChange={change('language')} disabled={busy || themeBusy} pattern=".*\S.*" /></Field>
       <Field label="Theme" help={themeBusy ? 'Saving theme…' : 'Theme changes are saved immediately.'} error={themeError}><Select value={user.preferences?.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')} onChange={changeTheme} disabled={busy || themeBusy}><option value="light">Light</option><option value="dark">Dark</option></Select></Field>
       {themeError && <Button variant="secondary" disabled={busy || themeBusy} onClick={() => changeTheme({ target: { value: themeAttempt } })}>Retry</Button>}
       <Field label="Timezone" help="This decides which doses count as today on your dashboard."><Select value={values.timezone} onChange={change('timezone')} disabled={busy || themeBusy}>{zones.map((zone) => <option key={zone} value={zone}>{zone.replaceAll('_', ' ')}</option>)}</Select></Field>
-      {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}<Button type="submit" loading={busy} disabled={!dirty || themeBusy}>Save preferences</Button>
+      {error && <><Banner tone="danger">{error}</Banner><Button type="submit" variant="secondary" disabled={busy}>Retry</Button></>}<Button type="submit" loading={busy} disabled={!dirty || themeBusy || !values.preferredNotificationChannel}>Save preferences</Button>
     </form></Card><AccountLinks /></div>;
 }

@@ -17,13 +17,13 @@ export const getSession = () => session;
 export const subscribeSession = (listener) => { listeners.add(listener); return () => listeners.delete(listener); };
 export function setSession(next) { generation++; publish(next); }
 export class ApiError extends Error {
-  constructor(message, status) { super(message); this.name = 'ApiError'; this.status = status; }
+  constructor(message, status, retryAfter = null) { super(message); this.name = 'ApiError'; this.status = status; this.retryAfter = retryAfter; }
 }
 function endSession() {
   setSession(null);
   if (typeof window !== 'undefined') window.location.replace('/login?notice=session-ended');
 }
-async function send(path, { body, headers, ...options } = {}, accessToken) {
+async function send(path, { body, headers, responseMeta = false, ...options } = {}, accessToken) {
   const requestHeaders = new Headers(headers);
   if (accessToken) requestHeaders.set('Authorization', `Bearer ${accessToken}`);
   if (body != null && !(body instanceof FormData)) {
@@ -34,8 +34,8 @@ async function send(path, { body, headers, ...options } = {}, accessToken) {
   try { response = await fetch(`${API_BASE_URL}${path}`, { ...options, body, headers: requestHeaders }); }
   catch (error) { if (error.name === 'AbortError') throw error; throw new ApiError('Could not reach MediTrack. Check your connection and try again.', 0); }
   const data = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new ApiError(data?.error || 'Request failed. Try again.', response.status);
-  return data;
+  if (!response.ok) throw new ApiError(data?.error || 'Request failed. Try again.', response.status, response.headers.get('Retry-After'));
+  return responseMeta ? { data, status: response.status } : data;
 }
 export function refreshSession() {
   if (refreshPromise) return refreshPromise;

@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import { useEffect, useRef, useState } from 'react';
 import { getInsights, dismissInsight } from '../../api/insights.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -36,6 +37,7 @@ function InsightsData({ patientId, permissionLevel, medicationIds, interactionsO
   const allowed = ['view_only', 'full_access'].includes(permissionLevel);
   const canDismiss = permissionLevel === 'full_access' && !writeDenied;
   const refresh = () => setRevision((value) => value + 1);
+  useDataChanged(['insight', 'medication', 'dose_log'], patientId, refresh);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
@@ -51,7 +53,7 @@ function InsightsData({ patientId, permissionLevel, medicationIds, interactionsO
         if (!disposed && !controller.signal.aborted) setState({ data });
       } catch (error) {
         if (!disposed && !controller.signal.aborted) {
-          setState({ error: error.message, restricted: error.status === 403 });
+          setState((old) => ({ data: error.status === 403 ? undefined : old?.data, error: error.message, restricted: error.status === 403 }));
           if (error.status === 403) refreshPatients();
         }
       }
@@ -85,8 +87,9 @@ function InsightsData({ patientId, permissionLevel, medicationIds, interactionsO
   return <div id={interactionsOnly ? undefined : 'insights'} className={s.section}>
     <Card title={interactionsOnly ? 'Medication interactions' : 'Insights'} action={<Button variant="secondary" onClick={refresh} disabled={Boolean(busy)}>Refresh insights</Button>}>
       {!allowed || state?.restricted ? <Banner>Restricted access. Insights include adherence details and interaction flags and require view-only or full access. Alerts-only access does not include Insights.{state?.restricted && <p>{state.error}</p>}</Banner>
-        : state?.error ? <ErrorState title="Could not load insights" onRetry={refresh}>{state.error}</ErrorState>
+        : state?.error && !state.data ? <ErrorState title="Could not load insights" onRetry={refresh}>{state.error}</ErrorState>
           : !state ? <Skeleton label="Loading insights" /> : <div className={s.content}>
+            {state?.error && <ErrorState title="Could not refresh insights" onRetry={refresh}>Showing the last successful update. {state.error}</ErrorState>}
             {failure && <Banner tone="danger">{failure}</Banner>}
             {permissionLevel === 'view_only' || writeDenied ? <p className={s.muted}>Full access is required to dismiss insights or acknowledge interaction flags.</p> : null}
             {flags.map((flag) => <article key={flag.dismissId} data-insight-id={flag.dismissId}>

@@ -7,6 +7,9 @@ async function fixture(page, theme, mode = 'ready') {
   await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
   await page.route('http://127.0.0.1:3000/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
+    if (path === '/api/insights') return route.fulfill({ json: { insights: [], interactionFlags: [] } });
+    if (path === '/api/reports/weekly') return route.fulfill({ json: [] });
+    if (path === '/api/notifications') return route.fulfill({ json: { notifications: [], nextCursor: null, unreadCount: 0 } });
     if (mode === 'error' && !path.endsWith('/refresh') && path !== '/api/users/me') return route.fulfill({ status: 503, json: { error: 'Could not reach MediTrack. Check your connection and try again.' } });
     const patient = { id: 2, fullName: 'Ravi Example', email: 'ravi@example.test' };
     const body = path.endsWith('/refresh') ? { user, accessToken: 'fixture-access', refreshToken: 'fixture-refresh' }

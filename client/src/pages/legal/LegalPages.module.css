@@ -1,0 +1,13 @@
+.layout { max-width: var(--content-max); margin-inline: auto; padding: var(--s7); display: grid; gap: var(--s8); }
+.layout header { font-size: var(--t-h4); }
+.document { max-width: var(--measure); display: grid; gap: var(--s6); }
+.document section { display: grid; gap: var(--s4); }
+.document h1, .document h2, .document h3, .question summary { font-family: var(--font-ui); }
+.document h2 { font-size: var(--t-h4); }
+.document h3 { font-size: var(--t-body-lg); }
+.document ul { margin: 0; padding-left: var(--s6); display: grid; gap: var(--s3); }
+.updated { color: var(--ink-2); font-size: var(--t-small); }
+.question { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--s4); }
+.question summary { cursor: pointer; font-weight: 600; }
+.question p { margin-top: var(--s4); }
+@media (max-width: 767px) { .layout { padding: var(--s4); } }

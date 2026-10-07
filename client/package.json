@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/api-client.test.js",
+    "test": "node --test tests/api-client.test.js tests/phase11.test.js",
     "test:ui": "playwright test"
   },
   "devDependencies": {

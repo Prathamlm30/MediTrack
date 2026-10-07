@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import PageHeader from '../../components/PageHeader.jsx';
 import Card from '../../components/Card.jsx';
 import Avatar from '../../components/Avatar.jsx';
@@ -85,6 +86,7 @@ function DashboardData({ patientId }) {
   const data = current?.data;
   useEffect(() => { if (data) hasPainted.current = true; }, [data]);
   const retry = () => setRevision((value) => value + 1);
+  useDataChanged(['dose_log', 'medication', 'schedule', 'inventory'], patientId || session.user.id, retry);
   if (!current) return <><PageHeader title={patientId ? 'Patient dashboard' : 'Your day'} /><Skeleton height="var(--dashboard-rail-loading)" label="Loading dashboard" />{['Today’s doses', 'Adherence', 'Refill alerts'].map((title) => <Card key={title} title={title}><Skeleton height="calc(var(--s10) * 2)" label={`Loading ${title.toLowerCase()}`} /></Card>)}</>;
   if (!data) return <ErrorState headingLevel={1} title={current.accessChanged ? 'Access changed' : 'Could not load the dashboard.'} onRetry={retry}>
     {current.accessChanged ? 'This patient’s information is no longer available to you. Your linked patients have been refreshed. You are still signed in.' : current.error}

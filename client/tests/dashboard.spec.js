@@ -15,6 +15,9 @@ async function fixture(page, respond) {
   await page.addInitScript(() => sessionStorage.setItem('meditrack.refresh', 'fixture-refresh'));
   await page.route('http://127.0.0.1:3000/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname; calls.push(path);
+    if (path === '/api/insights') return route.fulfill({ json: { insights: [], interactionFlags: [] } });
+    if (path === '/api/reports/weekly') return route.fulfill({ json: [] });
+    if (path === '/api/notifications') return route.fulfill({ json: { notifications: [], nextCursor: null, unreadCount: 0 } });
     const custom = respond?.(path); if (custom === 'abort') return route.abort();
     const body = custom ?? (path.endsWith('/refresh') ? { user, accessToken: 'fixture-access', refreshToken: 'fixture-refresh' } : path === '/api/users/me' ? { user } : path.endsWith('/my-patients') ? { patients } : path.endsWith('/caregiver/3') ? dashboard(3, 'alerts_only') : path === '/api/relationships' ? { relationships: [] } : dashboard());
     await route.fulfill({ status: body.httpStatus || 200, json: body });

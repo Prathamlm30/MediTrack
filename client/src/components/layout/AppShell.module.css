@@ -2,6 +2,7 @@
 .rail { position: fixed; inset: 0 auto 0 0; width: var(--rail-w); padding: var(--s6); background: var(--rail); color: var(--rail-ink); display: flex; flex-direction: column; gap: var(--s8); overflow-y: auto; }
 .wordmark { color: var(--rail-ink); font-size: var(--t-h3); font-weight: 600; text-decoration: none; }
 .navigation { display: grid; gap: var(--s2); }
+.badge { display: inline-block; margin-left: var(--s2); font-size: var(--t-caption); font-variant-numeric: tabular-nums; }
 .navigation a, .bottom a { padding: var(--s3); color: inherit; text-decoration: none; border-radius: var(--r-control); }
 .navigation a[aria-current], .bottom a[aria-current] { background: var(--brand-tint); color: var(--brand); font-weight: 600; }
 .user { margin-top: auto; display: grid; gap: var(--s2); border-top: 1px solid var(--rail-ink-dim); padding-top: var(--s5); }

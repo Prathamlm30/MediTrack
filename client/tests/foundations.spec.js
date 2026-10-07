@@ -41,6 +41,9 @@ async function mockSession(page, { delayed = false } = {}) {
   const calls = [];
   await page.route('http://127.0.0.1:3000/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname; calls.push(path);
+    if (path === '/api/insights') return route.fulfill({ json: { insights: [], interactionFlags: [] } });
+    if (path === '/api/reports/weekly') return route.fulfill({ json: [] });
+    if (path === '/api/notifications') return route.fulfill({ json: { notifications: [], nextCursor: null, unreadCount: 0 } });
     let body;
     if (path === '/api/auth/refresh') { await wait; body = { accessToken: 'fixture-access', refreshToken: 'fixture-rotated' }; }
     else if (path === '/api/users/me') body = { user };

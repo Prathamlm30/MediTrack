@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import { useState } from 'react';
 import { request } from '../../api/client.js';
 import { inventoryChanged } from '../../api/inventoryUpdates.js';
@@ -44,6 +45,7 @@ export default function ScheduleSection({ medication }) {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState('');
   const { data, error } = useResource(`/api/medications/${medication.id}/schedules`, revision);
+  useDataChanged(['schedule', 'medication'], medication.patientId, () => setRevision((v) => v + 1));
   const saved = () => { setAdding(false); setRevision((v) => v + 1); };
   async function generate() {
     setBusy(true); setFailure('');
@@ -52,7 +54,7 @@ export default function ScheduleSection({ medication }) {
   }
   return <section className={s.card}><h2>Reminder schedule setup</h2><p>Reminder times use the patient's timezone. Review generated times before relying on reminders.</p>
     {(error || failure) && <Banner tone="danger">{error || failure} <Button onClick={saved}>Reload schedules</Button></Banner>}
-    {!data ? !error && <p role="status">Loading schedules…</p> : <>{!data.length && <p>No schedules yet.</p>}{data.map((row) => <ScheduleRow key={`${row.id}:${revision}`} row={row} medication={medication} canEdit={medication.canEdit} saved={saved} />)}
+    {!data ? !error && <p role="status">Loading schedules…</p> : <>{!data.length && <p>No schedules yet.</p>}{data.map((row) => <ScheduleRow key={`${row.id}:${JSON.stringify(row)}`} row={row} medication={medication} canEdit={medication.canEdit} saved={saved} />)}
       {medication.canEdit && <div className={s.actions}>{!data.length && <Button loading={busy} onClick={generate}>Generate from frequency text</Button>}<Button variant="secondary" disabled={busy || adding} onClick={() => setAdding(true)}>Add schedule manually</Button></div>}
       {adding && medication.canEdit && <ScheduleRow medication={medication} canEdit saved={saved} cancel={() => setAdding(false)} />}</>}
   </section>;

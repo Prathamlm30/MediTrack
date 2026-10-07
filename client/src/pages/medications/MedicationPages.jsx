@@ -1,3 +1,4 @@
+import useDataChanged from '../../hooks/useDataChanged.js';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { request } from '../../api/client.js';
@@ -21,9 +22,10 @@ export function MedicationList() {
   const [status, setStatus] = useState('active');
   const [revision, setRevision] = useState(0);
   const { data, error } = useResource(`/api/medications${suffix}${status ? `&status=${status}` : ''}`, revision);
+  useDataChanged(['medication'], patientId, () => setRevision((v) => v + 1));
   return <div className={s.page}><PageHeader title="My medications" description="Manage your medicines, doses, and prescribing doctors." /><ManagementLinks suffix={suffix} />
     <div className={s.fields}>{selector}<Field label="Status"><Select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{statuses.map((v) => <option key={v}>{v}</option>)}</Select></Field></div>
-    {error ? <Banner tone="danger">{error} <Button onClick={() => setRevision((v) => v + 1)}>Retry</Button></Banner> : !data ? <p role="status">Loading medicines…</p> : <>
+    {error && <Banner tone="danger">{error} <Button onClick={() => setRevision((v) => v + 1)}>Retry</Button></Banner>}{!data ? !error && <p role="status">Loading medicines…</p> : <>
       {data.canEdit && <Link to={`/medications/add${suffix}`}>Add medication</Link>}
       <Insights patientId={patientId} permissionLevel={data.canEdit ? 'full_access' : 'view_only'} medicationIds={data.medications.map((m) => m.id)} interactionsOnly revision={revision} />
       {!data.medications.length && <p>No medications match this status.</p>}
@@ -91,6 +93,7 @@ function Detail({ id }) {
     try { await request(`/api/medications/${id}`, { method: 'DELETE' }); setRevision((v) => v + 1); }
     catch (err) { setFailure(err.message); } finally { setBusy(false); }
   }
+  useDataChanged(['medication', 'dose_log', 'schedule', 'inventory', 'insight'], m?.patientId, () => setRevision((v) => v + 1));
   const suffix = m ? `?patientId=${m.patientId}` : '';
   return <div className={s.page}><PageHeader title={m?.medicineName || 'Medication detail'} /><ManagementLinks suffix={suffix} />
     {(error || failure) && <Banner tone="danger">{error || failure} <Button onClick={() => setRevision((v) => v + 1)}>Refresh</Button></Banner>}

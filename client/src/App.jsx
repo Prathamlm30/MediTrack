@@ -5,6 +5,11 @@ import Placeholder from './pages/Placeholder.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ActivePatientProvider } from './context/ActivePatientContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
+import { NotificationProvider } from './context/NotificationContext.jsx';
+import Notifications from './pages/notifications/Notifications.jsx';
+import Activity from './pages/account/Activity.jsx';
+import Support from './pages/account/Support.jsx';
+import { PublicLayout, FAQ, Terms, Privacy, MedicalDisclaimer } from './pages/legal/LegalPages.jsx';
 import Alerts from './pages/caregiver/Alerts.jsx';
 import Chat from './pages/chat/Chat.jsx';
 import { ToastProvider } from './components/Toast.jsx';
@@ -22,7 +27,11 @@ import AdherencePage from './pages/adherence/AdherencePages.jsx';
 const DevUI = import.meta.env.DEV ? lazy(() => import('./pages/dev/DevUI.jsx')) : null;
 export default function App() {
   if (import.meta.env.DEV && window.location.pathname === '/dev/ui') return <ToastProvider><Suspense fallback={<Skeleton />}><DevUI /></Suspense></ToastProvider>;
-  return <AuthProvider><ActivePatientProvider><ToastProvider><SocketProvider><Routes>
+  return <AuthProvider><ActivePatientProvider><ToastProvider><SocketProvider><NotificationProvider><Routes>
+    <Route element={<PublicLayout />}>
+      <Route path="/faq" element={<FAQ />} /><Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} /><Route path="/medical-disclaimer" element={<MedicalDisclaimer />} />
+    </Route>
     <Route element={<AuthShell />}>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<SignInPage key="login" />} />
@@ -33,6 +42,9 @@ export default function App() {
       <Route path="/invitations/:token" element={<InvitationPage />} />
     </Route>
     <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
+      <Route path="/notifications" element={<Notifications />} />
+      <Route path="/settings/activity" element={<Activity />} />
+      <Route path="/support" element={<Support />} />
       <Route path="/chat" element={<Chat />} />
       <Route path="/chat/:conversationId" element={<Chat />} />
       <Route path="/medications" element={<MedicationList />} />
@@ -61,5 +73,5 @@ export default function App() {
       <Route path="/dashboard/caregiver" element={<Dashboard />} />
     </Route></Route>
     <Route path="*" element={<Placeholder title="Page not found" />} />
-  </Routes></SocketProvider></ToastProvider></ActivePatientProvider></AuthProvider>;
+  </Routes></NotificationProvider></SocketProvider></ToastProvider></ActivePatientProvider></AuthProvider>;
 }

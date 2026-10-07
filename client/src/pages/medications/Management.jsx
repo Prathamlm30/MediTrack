@@ -21,15 +21,29 @@ export function usePatientScope() {
 }
 export function useResource(path, revision = 0) {
   const [state, setState] = useState({});
+  const { refreshPatients } = useActivePatient();
   useEffect(() => {
-    const controller = new AbortController();
-    setState({ path, revision });
-    request(path, { signal: controller.signal }).then((data) => setState({ path, revision, data })).catch((error) => {
-      if (!controller.signal.aborted) setState({ path, revision, error: error.message });
-    });
-    return () => controller.abort();
-  }, [path, revision]);
-  return state.path === path && state.revision === revision ? state : {};
+    let controller;
+    async function load() {
+      controller?.abort();
+      const pending = new AbortController(); controller = pending;
+      try {
+        const data = await request(path, { signal: pending.signal });
+        if (!pending.signal.aborted) setState({ path, data });
+      } catch (error) {
+        if (pending.signal.aborted) return;
+        const denied = error.status === 403;
+        setState((old) => ({ path, data: !denied && error.status !== 404 && old.path === path ? old.data : undefined,
+          error: denied ? 'Access changed. This information is no longer available to you.' : error.message, status: error.status }));
+        if (denied) refreshPatients();
+      }
+    }
+    void load();
+    const interval = setInterval(load, 30000);
+    window.addEventListener('focus', load);
+    return () => { controller?.abort(); clearInterval(interval); window.removeEventListener('focus', load); };
+  }, [path, revision, refreshPatients]);
+  return state.path === path ? state : {};
 }
 export function ManagementLinks({ suffix = '' }) {
   return <nav className={s.actions} aria-label="Medication and doctor management"><Link to={`/medications${suffix}`}>Medications</Link><Link to={`/doctors${suffix}`}>Doctors</Link><Link to={`/today${suffix}`}>Today</Link><Link to={`/dose-history${suffix}`}>Dose log history</Link><Link to={`/adherence${suffix}`}>Adherence</Link><Link to="/prescription-scans">Scan prescription</Link></nav>;

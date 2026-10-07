@@ -138,10 +138,10 @@ test('theme saves immediately; preferences whitelist and persistence', async ({ 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   expect(payloads[0]).toEqual({ theme: 'dark' });
   await page.getByLabel('Timezone', { exact: true }).selectOption('America/New_York');
-  await page.getByLabel('Preferred notification channel').selectOption('sms');
+  await page.getByLabel('Preferred notification channel').selectOption('in_app');
   await page.getByRole('button', { name: 'Save preferences' }).click();
   await expect(page.getByRole('button', { name: 'Save preferences' })).toBeDisabled();
-  expect(payloads[1]).toEqual({ preferredNotificationChannel: 'sms', language: 'en', timezone: 'America/New_York' });
+  expect(payloads[1]).toEqual({ preferredNotificationChannel: 'in_app', language: 'en', timezone: 'America/New_York' });
   await page.reload(); await expect(page.getByLabel('Timezone', { exact: true })).toHaveValue('America/New_York');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });

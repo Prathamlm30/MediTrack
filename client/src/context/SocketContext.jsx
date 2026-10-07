@@ -1,11 +1,11 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { API_BASE_URL, getSession, refreshSession } from '../api/client.js';
 import { useAuth } from './AuthContext.jsx';
 import { useActivePatient } from './ActivePatientContext.jsx';
 import { useToast } from '../components/Toast.jsx';
 
-const SocketContext = createContext({ socket: null, status: 'Connecting for live updates…' });
+const SocketContext = createContext({ socket: null, status: 'Connecting for live updates…', subscribeDataChanged: () => () => {} });
 
 // One authenticated connection for alerts, adherence, and scan review. Route
 // consumers only add/remove listeners; this provider owns its lifetime.
@@ -14,6 +14,10 @@ function SessionSocket({ session, children }) {
   const [status, setStatus] = useState('Connecting for live updates…');
   const { patients } = useActivePatient();
   const notify = useToast();
+  const subscribeDataChanged = useCallback((listener) => {
+    socket.on('data-changed', listener);
+    return () => socket.off('data-changed', listener);
+  }, [socket]);
   useEffect(() => {
     let live = true;
     let refreshed = false;
@@ -50,7 +54,7 @@ function SessionSocket({ session, children }) {
     socket.on('missed-dose-alert', missed);
     return () => socket.off('missed-dose-alert', missed);
   }, [socket, patients, notify]);
-  return <SocketContext.Provider value={{ socket, status }}>{children}</SocketContext.Provider>;
+  return <SocketContext.Provider value={{ socket, status, subscribeDataChanged }}>{children}</SocketContext.Provider>;
 }
 
 export function SocketProvider({ children }) {
