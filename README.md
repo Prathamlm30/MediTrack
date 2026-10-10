@@ -62,7 +62,26 @@ MediTrack treats that as the core design problem. Everything else (OCR, schedule
 </p>
 <p align="center"><sub>Adherence calendar heatmap, colour-coded 0 % / 1–49 % / 50–99 % / 100 %. Days with no data say "no data" instead of pretending to be 0 %.</sub></p>
 
+### Accounts and themes
+
+<p align="center">
+  <img src="docs/screenshots/18-login.jpg" width="49%" alt="Login page in dark theme with empty email and password fields">
+  <img src="docs/screenshots/19-signup.jpg" width="49%" alt="Signup page with the Create your account title and empty fields">
+</p>
+<p align="center"><sub>Dark-theme login and the signup form, shown from the top with no account details entered.</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/25-dashboard-dark.jpg" width="49%" alt="Demo patient's dashboard in dark theme">
+  <img src="docs/screenshots/26-dashboard-mobile.jpg" width="49%" alt="Demo patient's dashboard at a 390 by 844 mobile viewport">
+</p>
+<p align="center"><sub>The patient dashboard in dark theme and at mobile width, with responsive navigation and a vertical dose timeline.</sub></p>
+
 ### Prescription scan with mandatory human review
+
+<p align="center">
+  <img src="docs/screenshots/27-scan-upload.jpg" width="70%" alt="Prescription Scan upload page before a file is chosen">
+</p>
+<p align="center"><sub>Choose a prescription image to upload; the Scan page explains the required review before medicines are saved.</sub></p>
 
 <p align="center">
   <img src="docs/screenshots/04-ocr-review-and-confirm.jpg" width="85%" alt="Review and confirm screen with the prescription image next to editable extracted fields">
@@ -93,6 +112,20 @@ MediTrack treats that as the core design problem. Everything else (OCR, schedule
 </p>
 <p align="center"><sub>Simvastatin + Clarithromycin raises a severe warning with a link to the DailyMed label it came from, and the user must acknowledge it. Warnings come only from the reviewed 30-pair dataset, never from the AI.</sub></p>
 
+### Notifications, privacy and account activity
+
+<p align="center">
+  <img src="docs/screenshots/20-notification-inbox.jpg" width="49%" alt="Demo patient's notification inbox with read and unread reminders">
+  <img src="docs/screenshots/21-account-activity.jpg" width="49%" alt="Account activity showing a caregiver read and permission changes">
+</p>
+<p align="center"><sub>Read and unread reminders in the patient inbox, alongside recorded caregiver access and permission changes.</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/22-notification-settings.jpg" width="49%" alt="Notification preferences with channel, language, theme and timezone settings">
+  <img src="docs/screenshots/23-support-form.jpg" width="49%" alt="Contact support form for a demo account with empty subject and message fields">
+</p>
+<p align="center"><sub>Notification channel preferences and account settings, plus the contact support form with a demo reply address.</sub></p>
+
 ### Caregivers, permissions and live alerts
 
 <p align="center">
@@ -109,6 +142,11 @@ MediTrack treats that as the core design problem. Everything else (OCR, schedule
   <img src="docs/screenshots/14-relationships.jpg" width="70%" alt="Relationships page showing both directions">
 </p>
 <p align="center"><sub>Invite by email, accept or decline, and every new link starts at <code>view_only</code>. The patient chooses whether to widen it. The relationships page shows both directions: people who care for me and people I care for.</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/24-weekly-report.jpg" width="70%" alt="Caregiver's weekly summary report showing recorded dose counts and delivery status">
+</p>
+<p align="center"><sub>A caregiver opens the demo patient's weekly summary, including the reporting window, recorded dose counts and delivery status.</sub></p>
 
 ### AI chat with a forced disclaimer
 
