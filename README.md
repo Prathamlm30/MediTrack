@@ -1,7 +1,7 @@
 # MediTrack — Phase 0
 
 Local architecture: React/Vite client (`5173`) -> Express server (`3000`) ->
-FastAPI OCR service (`8000`). PostgreSQL (`5432`) and Redis (`6379`) run in Docker.
+FastAPI OCR service (`8001`). PostgreSQL (`5432`) and Redis (`6379`) run in Docker.
 The client is intentionally blank. Only the two health routes are implemented;
 auth, OCR execution, business logic, sockets and UI pages belong to later phases.
 
@@ -85,7 +85,7 @@ npm run dev
 ```powershell
 # Terminal 2 — FastAPI (activation is not necessary)
 Set-Location D:\MediTrack-App\ocr-service
-.\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload --env-file .env
+.\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload --env-file .env
 ```
 
 ```powershell
@@ -108,7 +108,7 @@ With all three services running:
 
 ```powershell
 curl.exe -i http://127.0.0.1:3000/api/health
-curl.exe -i http://127.0.0.1:8000/health
+curl.exe -i http://127.0.0.1:8001/health
 # Verify the client dev server can proxy to Express:
 curl.exe -i http://localhost:5173/api/health
 # Verify the frontend shell is served (intentionally blank):
