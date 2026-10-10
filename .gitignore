@@ -17,3 +17,42 @@ Thumbs.db
 .vscode/
 pgdata/
 redisdata/
+
+# Extra ignores
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+client/build/
+server/prisma/generated/
+*.pyo
+*.pyd
+ocr-service/venv/
+ocr-service/.paddleocr/
+ocr-service/paddle_cache/
+ocr-service/inference/
+*.pdmodel
+*.pdparams
+*.pdiparams
+*.pdiparams.info
+temp_uploads/
+logs/
+desktop.ini
+*.swp
+*.swo
+.nyc_output/
+jest-results/
+test-results/
+playwright-report/
+
+# Docs: keep only these
+docs/*
+!docs/MediTrack_Complete_Running_and_Testing_Guide.md
+!docs/MediTrack_Website_Schema_and_Sitemap.xlsx
+!docs/MediTrack_Roadmap_v3.pdf
+!docs/ocr-reference/
+!docs/MediTrack_OCR_Benchmark_Report.pdf
+
+# Local-only notes
+client/*.md
+**/VERIFY.md
+server/src/tests/PHASE1.md
