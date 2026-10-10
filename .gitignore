@@ -51,6 +51,7 @@ docs/*
 !docs/MediTrack_Roadmap_v3.pdf
 !docs/ocr-reference/
 !docs/MediTrack_OCR_Benchmark_Report.pdf
+!docs/screenshots/
 
 # Local-only notes
 client/*.md
